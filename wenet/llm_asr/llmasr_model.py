@@ -6,7 +6,7 @@ import torch
 from peft import LoraConfig, TaskType, get_peft_model
 from torch import nn
 from torch.nn import CrossEntropyLoss
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 from wenet.transformer.encoder import TransformerEncoder
 from wenet.llm_asr.utils4llmasr import *
