@@ -36,7 +36,11 @@ The overview of the architecture and tasks of OSUM.
 <p>
 
 ## News and Updates
+### 2025.8.14 🎉 We are extremely honored to introduce OSUM-EChat, a new end-to-end empathetic speech dialogue model. Its related paper has been published ([OSUM-EChat Paper](http://arxiv.org/abs/2508.09600)), and the code and model checkpoints will be made available in the near future.
 
+Built on the OSUM large-scale speech understanding model, this model adopts a three-stage training process of "understanding-generation-empathy" and innovatively incorporates empathy-related reasoning mechanisms. It has successfully achieved industry-leading empathetic dialogue capabilities under the condition of limited speech dialogue data. To the best of our knowledge, this is the first empathetic dialogue model in the industry built upon a large-scale speech understanding model, and also a pioneering research achievement in the field of empathetic reasoning.
+
+We have conducted two explorations in the field of empathetic reasoning: label-based reasoning and natural language-based reasoning. Although both reasoning mechanisms have brought about performance improvements, we found that the natural language-based reasoning mechanism can yield more fluent responses and better facilitate the model's capture of subtle paralinguistic cues. The current version of the paper has elaborated on the three-stage training process and the label-based reasoning mechanism, and the content related to the natural language-based reasoning mechanism will be supplemented in the upcoming update.
 ### 2025.2.16 🎉 We updated the technical report [OSUM technical report v2.0](https://arxiv.org/abs/2501.13306v2) and released the [checkpoint](https://huggingface.co/ASLP-lab/OSUM), and the online [test page](https://huggingface.co/spaces/ASLP-lab/OSUM) on hugging face.
 In technical report v2.0, the OSUM model has gone through more training steps and the training data volume has increased to 50.5K hours (as compared to 44.1K hours in v1.0) 
 - 3000 hours of speech gender classification (SGC) data, which includes 1500 hours of existing data augmented with noise, and another 1500 hours of new data.
