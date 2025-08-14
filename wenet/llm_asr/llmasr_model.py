@@ -6,7 +6,7 @@ import torch
 from peft import LoraConfig, TaskType, get_peft_model
 from torch import nn
 from torch.nn import CrossEntropyLoss
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 from wenet.transformer.encoder import TransformerEncoder
 from wenet.llm_asr.utils4llmasr import *
@@ -60,12 +60,8 @@ class LLMASR_Model(nn.Module):
         # LLM,
         self.low_resource = False
         if not self.low_resource:
-            self.llama_model = AutoModelForCausalLM.from_pretrained(
-                llm_path,
-                torch_dtype=torch.bfloat16,
-                trust_remote_code=True,
-                output_hidden_states=True,
-            )
+            self.llama_model = AutoConfig.from_pretrained(llm_path)
+            self.llama_model = AutoModelForCausalLM.from_config(self.llama_model)
         else:
             self.llama_model = AutoModelForCausalLM.from_pretrained(
                 llm_path,
