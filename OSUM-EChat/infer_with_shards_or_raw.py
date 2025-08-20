@@ -51,9 +51,9 @@ dtype = torch.float32
 device = torch.device(f'cuda:{gpu_id}')
 configs, test_conf = get_test_conf(config_path)
 
-checkpoint_path = "/home/A02_tmpdata2/ckpt/osum_chat_new_start_0810/epoch3_s2t_t2s_t2t_s2s_hq_language_think/step_27499.pt"
+checkpoint_path = "**/language_think_final.pt"
 config_path = "conf/ct_config.yaml"
-cosyvoice_model_path = "/home/A02_tmpdata2/ckpt/cosyvoice1-300M/CosyVoice-300M-25Hz"
+cosyvoice_model_path = "**/CosyVoice-300M-25Hz"
 
 prompt_wav_path = "./tts/assert/prompt.wav"
 prompt_audio_cache = {"拟人": load_wav(prompt_wav_path, 22050)}

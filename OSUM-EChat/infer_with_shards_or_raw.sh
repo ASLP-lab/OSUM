@@ -2,14 +2,14 @@
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7  # 设置可见GPU
 # 配置参数
-test_data_path="/home/A02_tmpdata2/data/context_asr_sentence_few/wav_shards/shards/test_raw_data/data.list"
-infer_res_path="/home/A02_tmpdata2/ckpt/osum_chat_new_start_0810/context_asr/epoch0/infer_think/infer_res.scp"
+test_data_path="**/data.list"
+infer_res_path="**/infer_res.scp"
 gpu_ids=(0 1 2 3 4 5 6 7)  # GPU ID列表（可根据实际可用GPU修改）
 per_gpu_processes=1  # 每个GPU上的进程数
 data_type="raw"  # 数据类型，raw或shards_full_data
 
 
-true_text_path="/home/A02_tmpdata2/data/context_asr_sentence_few/wav_shards/shards/test_text.scp"
+true_text_path="**/test_text.scp"
 output_dir=$(dirname "$infer_res_path")
 
 
