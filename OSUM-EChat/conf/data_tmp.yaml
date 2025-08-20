@@ -1,0 +1,6 @@
+gaozhiliang_gbma:
+  path: /home/A02_tmpdata3/osum_s2s/gaozhiliang_gbma/shards_list.txt
+  new_data_list: /home/node44_tmpdata3/netease/gbma/workspace/osum/data/process/0803/all_data_info.jsonl
+  new_lab_path: /home/work_nfs23/asr_data/data/osum_chat/s2s/gaozhiliang_gbma/shards_list.txt
+  shard_num: 24
+  weight: 10

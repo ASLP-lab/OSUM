@@ -1,0 +1,35 @@
+--extra-index-url https://download.pytorch.org/whl/cu121
+--extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/ # https://github.com/microsoft/onnxruntime/issues/21684
+conformer
+diffusers
+gdown
+gradio
+grpcio
+grpcio-tools
+hydra-core
+HyperPyYAML
+inflect
+librosa
+lightning
+matplotlib
+modelscope
+networkx
+omegaconf
+onnx==1.16.0
+onnxruntime-gpu==1.18.0; sys_platform == 'linux'
+onnxruntime==1.18.0; sys_platform == 'darwin' or sys_platform == 'windows'
+openai-whisper
+protobu
+pydantic==2.7.0
+pyworld==0.3.4
+rich==13.7.1
+soundfile
+tensorboard
+tensorrt-cu12==10.0.1; sys_platform == 'linux'
+tensorrt-cu12-bindings==10.0.1; sys_platform == 'linux'
+tensorrt-cu12-libs==10.0.1; sys_platform == 'linux'
+uvicorn==0.30.0
+wget==3.2
+fastapi==0.115.6
+fastapi-cli==0.0.4
+

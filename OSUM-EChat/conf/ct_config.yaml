@@ -1,0 +1,152 @@
+model: osum_echat
+
+# llm_path
+llm_path: &llm_path "/home/A02_tmpdata3/ckpt/Qwen2.5-3B-Instruct"
+#
+# model config
+downsample_rate: 4 # 1 2 4 8
+adapter_type: osum_echat
+if_instruct: true
+input_dim: 80
+
+# tokenizer ,gxl
+tokenizer: huggingface
+tokenizer_conf:
+  llm_path: *llm_path
+
+# lora config
+use_lora: false
+lora_alpha: 32
+lora_rank: 64 # 3B -> 85M
+lora_dropout: 0.1
+
+# speech generate config
+speech_token_num: &token_num 4097 #4097
+
+
+# Configuration of parameters for training
+fire_module: link_and_encoder_and_lora  # link  encoder llm  link_and_encoder link_and_encoder_and_lora, llm需要配合use_lora为true
+
+# other config
+grad_clip: 5
+accum_grad: 8
+log_interval: 10
+save_interval: 1250 #1250 #2500
+max_epoch: 1
+init_step: true
+
+# training config
+optim: adamw
+optim_conf:
+  betas:
+  - 0.9
+  - 0.99
+  eps: 1.0e-06
+  lr: 1.0e-06
+  weight_decay: 0.01
+scheduler: warmuplr
+scheduler_conf:
+  warmup_steps: 2000
+
+
+dataset: asr
+dataset_conf:
+  speech_token_num: *token_num
+  batch_conf:
+    batch_size: 26
+    batch_type: dynamic
+    max_frames_in_batch: 28000000 #3000 #9000 #3000 #3300 # 3900
+    max_seq_in_batch: 3700 #1500 #4000 #1100 #1600 # 1900
+  feats_type: log_mel_spectrogram
+  filter_conf:
+    max_length: 20000
+    min_length: 20
+    token_max_length: 1200
+    token_min_length: 1
+    filter_no_extra_info: true # 如果没有task lang 等信息,直接过滤掉, 适用于通用多任务训练, 推理时应该关掉
+    max_seq_len: 2000  #、1100 #1000
+    other_filter_conf:
+      only_s2s: false # 只针对与s2s dataloader的过滤
+      only_s2t: false # 只针对与s2t dataloader的过滤
+      only_t2t: false # 只针对与t2t dataloader的过滤
+      only_t2s: false # 只针对与t2s dataloader的过滤
+  language_conf:
+    limited_langs:
+    - zh
+  log_mel_spectrogram_conf:
+    hop_length: 160
+    n_fft: 400
+    num_mel_bins: 80
+    padding: 0
+  resample_conf:
+    resample_rate: 16000
+  shuffle: true
+  shuffle_conf:
+    shuffle_size: 1500
+  sort: true
+  sort_conf:
+    sort_size: 500
+  spec_aug: true
+  spec_aug_conf:
+    max_f: 10
+    max_t: 50
+    num_f_mask: 2
+    num_t_mask: 2
+  spec_sub: true
+  spec_sub_conf:
+    max_t: 30
+    num_t_sub: 3
+  spec_trim: false
+  speed_perturb: false
+  eod_id: 151645
+  split_num: 1
+  multi_num: 2
+  prompt_conf_path: conf/prompt_config.yaml
+  data_recover: false
+  data_recover_conf:
+    start_idx: 0 # 删除前面start_idx个item(tar包)
+  other_tokenze_conf:  # 一些对数据额外操作的可控按钮,这些操作一般来说再test时都得为false
+    only_info:
+      only_s2s: false # 只针对与s2s dataloader的过滤
+      only_s2t: false # 只针对与s2t dataloader的过滤
+      only_t2t: false # 只针对与t2t dataloader的过滤
+      only_t2s: false # 只针对与t2s dataloader的过滤
+    use_50_per_change_if_only_X: true # 50%的句子随机替换为其only X
+    use_s2s_streaming_random:
+      enable: false
+      rate: 0.5 # 1.0 表示100%的句子随机替换为其only X
+    natural_language_convert:
+      enable: false
+      rate: 0.00 # 1.0 表示100%的转换成自然语言模式
+    use_s2s_convert_s2t:
+      enable: false # 单独为s2t dataloader 开启s2s convert
+      rate: 1.0 # 1.0 表示100%的句子随机替换为其only X
+    use_streaming_tts:
+      enable: false
+      rate: 0.5 # 1.0 表示100%的句子随机替换为其only X
+    use_think_mode:
+      enable: false # 开启think 模式, 即随机替换为think模式的句子
+      rate: 0.8
+  other_filter_conf:
+    fiter_txt_is_None: true # 过滤掉text is "<NONE>"的语音数据,适配由于gender数据部分含有<NONE>标签而设计。但仅train起作用
+
+# model config for encoder
+encoder: transformer
+encoder_conf:
+  activation_type: gelu
+  attention_dropout_rate: 0.0
+  attention_heads: 16
+  dropout_rate: 0.1
+  gradient_checkpointing: true
+  input_layer: conv1d2
+  key_bias: false
+  linear_units: 4096
+  normalize_before: true
+  num_blocks: 24
+  output_size: 1024
+  pos_enc_layer_type: abs_pos_whisper
+  positional_dropout_rate: 0.1
+  static_chunk_size: -1
+  use_dynamic_chunk: false
+  use_dynamic_left_chunk: false
+
