@@ -5,7 +5,7 @@ transformers==4.44.0
 torchaudio==2.1.0
 librosa
 tensorboardX>=2.5
-torch_npu==2.1.0.post8
+# torch_npu==2.1.0.post8
 tqdm
 absl-py
 psutil
@@ -19,3 +19,15 @@ sox
 deepspeed
 librosa
 gxl_ai_utils
+
+
+hyperpyyaml
+modelscope
+onnxruntime
+inflect
+ttsfrd
+omegaconf
+conformer
+diffusers
+hydra-core
+lightning
