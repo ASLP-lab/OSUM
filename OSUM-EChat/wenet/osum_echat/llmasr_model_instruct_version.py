@@ -7,7 +7,7 @@ from peft import LoraConfig, TaskType, get_peft_model
 from torch import nn
 from torch.nn import CrossEntropyLoss
 from torch.nn.utils.rnn import pad_sequence
-from transformers import AutoModelForCausalLM, AutoTokenizer, LogitsProcessorList, StoppingCriteriaList
+from transformers import AutoModelForCausalLM, AutoTokenizer, LogitsProcessorList, StoppingCriteriaList, AutoConfig
 
 from patches.cumstom_stop_criteria import InterruptStopper, S2SStopCriteria, MaxTokenStopper
 from patches.custom_speech_ngram_blocking import SpeechOnlyNGramBlockingLogitsProcessor, OSUM_chat_LogitsProcessor
@@ -58,12 +58,23 @@ class LLMASR_Model(nn.Module):
         else:
             self.speech_transformer = None
 
-        self.llama_model = AutoModelForCausalLM.from_pretrained(
+        # self.llama_model = AutoModelForCausalLM.from_pretrained(
+        #     llm_path,
+        #     # torch_dtype=torch.float32 if is_inference else torch.float16,
+        #     torch_dtype=torch.bfloat16,
+        #     trust_remote_code=True,
+        #     output_hidden_states=True,
+        # )
+        self.config = AutoConfig.from_pretrained(
             llm_path,
-            # torch_dtype=torch.float32 if is_inference else torch.float16,
-            torch_dtype=torch.bfloat16,
-            trust_remote_code=True,
-            output_hidden_states=True,
+            trust_remote_code=True,  # 若模型有自定义代码需开启
+            output_hidden_states=True,  # 根据需求配置
+        )
+        # 2. 基于配置创建空模型（权重随机初始化，不加载预训练参数）
+        self.llama_model = AutoModelForCausalLM.from_config(
+            self.config,
+            torch_dtype=torch.bfloat16,  # 指定数据类型
+            trust_remote_code=True,  # 与config保持一致
         )
         self.s2s_stop_criteria = None
         self.max_token_criteria_list = None

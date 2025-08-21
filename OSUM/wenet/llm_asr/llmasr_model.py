@@ -60,8 +60,8 @@ class LLMASR_Model(nn.Module):
         # LLM,
         self.low_resource = False
         if not self.low_resource:
-            self.llama_model = AutoConfig.from_pretrained(llm_path)
-            self.llama_model = AutoModelForCausalLM.from_config(self.llama_model)
+                self.llama_model = AutoConfig.from_pretrained(llm_path)
+                self.llama_model = AutoModelForCausalLM.from_config(self.llama_model)
         else:
             self.llama_model = AutoModelForCausalLM.from_pretrained(
                 llm_path,

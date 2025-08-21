@@ -4,7 +4,7 @@ torch==2.1.0
 transformers==4.44.0
 torchaudio==2.1.0
 accelerate==1.7.0
-peft==0.15.2
+peft==0.17.0
 librosa
 tensorboardX>=2.5
 # torch_npu==2.1.0.post8
@@ -26,7 +26,6 @@ hyperpyyaml
 modelscope
 onnxruntime
 inflect
-ttsfrd
 omegaconf
 conformer
 diffusers
@@ -35,3 +34,8 @@ lightning
 
 gradio
 cn2an
+gdown
+matplotlib
+wget
+pyarrow
+pyworld
