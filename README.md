@@ -1,9 +1,49 @@
- <p align="left">
+
+<p align="left">
         <a href="README_CN.md">中文</a> &nbsp｜ &nbsp English&nbsp&nbsp ｜ <a href="README_JP.md">日本語</a> &nbsp
 </p>
+
+
+
+<p align="center">
+   <h1>OSUM-EChat: Enhancing End-to-End Empathetic Spoken Chatbot via Understanding-Driven Spoken Dialogue</h1>
+<p>
+
+Xuelong Geng, Qijie Shao, Hongfei Xue, Shuiyuan Wang, Hanke Xie, Zhao Guo, Yi Zhao, Guojian Li, Wenjie Tian, Chengyou Wang, Zhixian Zhao, Kangxiang Xia, Ziyu Zhang, Zhennan Lin, Tianlun Zuo, Mingchen Shao, Yuang Cao, Guobin Ma, Longhao Li, Yuhang Dai, Dehui Gao, Dake Guo, Lei Xie
+
+
+<p align="center">
+    <img src="images/osum-echat/SUM.png" width="500"/>
+<p>
+
+<p align="center">
+ <a href="https://www.osum-echat.npu-aslp.org/"> Test Page</a> </a>&nbsp
+<br>
+📑 <a href="https://www.arxiv.org/abs/2508.09600">Paper</a> &nbsp&nbsp | &nbsp&nbsp 📑 <a href="https://aslp-lab.github.io/osum-echat.github.io/">Demo</a> &nbsp&nbsp | &nbsp&nbsp 💬 <a href="raw/fig/wechat.png">WeChat (微信)</a>&nbsp&nbsp 
+</p>
+
+Empathy is crucial in enabling natural interactions within spoken dialogue systems, allowing machines to recognize and respond appropriately to paralinguistic cues such as age, gender, and emotion. Recent advancements in end-to-end speech language models, which unify speech understanding and generation, provide promising solutions. However, several challenges persist, including an over-reliance on large-scale dialogue datasets, insufficient extraction of paralinguistic cues vital for conveying empathy, and the lack of empathy-specific datasets and evaluation frameworks. To address these issues, we introduce OSUM-EChat, an open-source, end-to-end spoken dialogue system designed to enhance empathetic interactions, particularly in resource-limited settings. OSUM-EChat introduces two key innovations: (1) a three-stage understanding-driven spoken dialogue training strategy that extends the capabilities of a large speech understanding model to spoken dialogue tasks, and (2) a linguistic-paralinguistic dual thinking mechanism that integrates paralinguistic understanding through a chain of thought with dialogue generation, enabling the system to produce more empathetic responses. This approach reduces reliance on large-scale dialogue datasets while maintaining high-quality empathetic interactions. Additionally, we introduce the EChat-200K dataset, a rich corpus of empathetic speech-to-speech dialogues, and the EChat-eval benchmark, a comprehensive framework for evaluating the empathetic capabilities of dialogue systems. Experimental results demonstrate that OSUM-EChat outperforms end-to-end spoken dialogue models regarding empathetic responsiveness, validating its effectiveness.
+## Architecture
+
+This section presents an overview of the overall architecture and core tasks of OSUM-EChat. OSUM-EChat consists of three modules: a speech encoder (with an adapter), a text LLM (Large Language Model), and a token-to-speech module. It also possesses a wide range of speech functions, including various speech understanding tasks (speech-to-text), speech synthesis tasks, speech dialogue tasks, and text dialogue tasks. Meanwhile, by leveraging internally constructed empathetic dialogue data and a paralinguistic information reasoning mechanism, OSUM-EChat can generate more empathetic responses in speech dialogue tasks.
+<p align="center">
+    <img src="images/osum-echat/system.png" width="80%"/>
+<p>
+
+## More Details of OSUM-EChat and Guidelines for Training and Inference
+<p align="left">
+For more introductory information about OSUM-EChat and instructions on how to use the OSUM-EChat framework for inference and training, please refer to <a href="OSUM-EChat/README.md">HERE</a>.
+</p>
+
+
+
+
+
+
+
 <p align="center">
    <h1>OSUM: Advancing Open Speech Understanding Models with Limited Resources in Academia</h1>
-</p>
+<p>
 
 Xuelong Geng, Kun Wei, Qijie Shao, Shuiyun Liu*, Zhennan Lin*, Zhixian Zhao*, Guojian Li*, Wenjie Tian*, Peikun Chen, Yangze Li, Pengcheng Guo, Mingchen Shao, Shuiyuan Wang, Yuang Cao, Chengyou Wang, Tianyi Xu, Yuhang Dai, Xinfa Zhu, Yue Li, Li Zhang, Lei Xie†
 
@@ -29,14 +69,19 @@ Beyond delivering strong performance, OSUM emphasizes transparency by providing 
 
 ## Architecture
 
-The overview of the architecture and tasks of OSUM.
+The OSUM model combines the Whisper encoder with the Qwen2 LLM, supporting a wide range of speech tasks, including Automatic Speech Recognition (ASR), Speech Recognition with Timestamps (SRWT), Voice Event Detection (VED), Speech Emotion Recognition (SER), Speech Style Recognition (SSR), Speaker Gender Classification (SGC), Speaker Age Prediction (SAP), and Speech-to-Text Chat (STTC). By adopting the ASR+X training strategy, OSUM achieves efficient and stable multi-task training through simultaneous optimization of modal alignment and target tasks.
 
 <p align="center">
     <img src="images/system.png" width="80%"/>
 <p>
 
+## More Details of OSUM and Guidelines for Training and Inference
+<p align="left">
+For more introductory information about OSUM and instructions on how to use the OSUM framework for inference and training, please refer to <a href="OSUM/README.md">HERE</a>.
+</p>
+
 ## News and Updates
-### 2025.8.14 🎉 We are extremely honored to introduce OSUM-EChat, a new end-to-end empathetic speech dialogue model. Its related paper has been published ([OSUM-EChat Paper](http://arxiv.org/abs/2508.09600)), and the code and model checkpoints will be made available in the near future.
+### 2025.8.14 🎉 We are extremely honored to introduce OSUM-EChat, a new end-to-end empathetic speech dialogue model. Its related paper has been published ([OSUM-EChat Paper](http://arxiv.org/abs/2508.09600)), and the code and model checkpoints will be made available very soon.
 
 Built on the OSUM large-scale speech understanding model, this model adopts a three-stage training process of "understanding-generation-empathy" and innovatively incorporates empathy-related reasoning mechanisms. It has successfully achieved industry-leading empathetic dialogue capabilities under the condition of limited speech dialogue data. To the best of our knowledge, this is the first empathetic dialogue model in the industry built upon a large-scale speech understanding model, and also a pioneering research achievement in the field of empathetic reasoning.
 
@@ -49,43 +94,6 @@ In technical report v2.0, the OSUM model has gone through more training steps an
 
 <br>
 
-## Evaluation
- Comparison of Qwen2-Audio and our OSUM model. In most tasks, OSUM achieves a better
-performance than Qwen2-Audio despite using significantly fewer computational resources and training data.
-<p align="center">
-    <img src="images/radar.jpg" width="80%"/>
-<p>
-
-Evaluation results of ASR tasks on public and internal test sets. The bold font represents the best
-result among the same test set. All internal results are inferred by ourselves.
-<p align="center">
-    <img src="images/res_asr.jpg" width="80%"/>
-<p>
-
-
-Evaluation results of multi-tasking on public and internal test sets. The best results for each test set
-are highlighted in bold font. Results shown in blue font, as well as those on internal test sets, are inferred
-using the original released model by ourselves.
-<p align="center">
-    <img src="images/res_multi.jpg" width="80%"/>
-<p>
-
-<!--  We have provided **all** evaluation scripts to reproduce our results. Please refer to [eval_audio/EVALUATION.md](eval_audio/EVALUATION.md) for details.
-  --> 
-
-
-## Requirements
-```
-pip install requirements.txt
-```
-<!-- 
-## Quickstart
-## Demo
-### Web UI
--->
- <p align="left">
-       How to use the OSUM framework for inference and training? Please refer to <a href="examples/osum/README.md">here</a>
-</p>
 
 ## License Agreement
 
@@ -93,6 +101,15 @@ We use the Apache 2.0 license. Researchers and developers are free to use the co
 <br>
 
 ## Citation
+```
+@article{geng2025osum,
+  title={OSUM-EChat: Enhancing End-to-End Empathetic Spoken Chatbot via Understanding-Driven Spoken Dialogue},
+  author={Geng, Xuelong and Shao, Qijie and Xue, Hongfei and Wang, Shuiyuan and Xie, Hanke and Guo, Zhao and Zhao, Yi and Li, Guojian and Tian, Wenjie and Wang, Chengyou and others},
+  journal={arXiv preprint arXiv:2508.09600},
+  year={2025}
+}
+```
+
 ```
 @article{geng2025osum,
   title={{OSUM}: {Advancing} Open Speech Understanding Models with Limited Resources in Academia},
