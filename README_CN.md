@@ -19,11 +19,16 @@
 📑 <a href="https://www.arxiv.org/abs/2508.09600">Paper</a> &nbsp&nbsp | &nbsp&nbsp 📑 <a href="https://aslp-lab.github.io/osum-echat.github.io/">Demo</a> &nbsp&nbsp | &nbsp&nbsp 💬 <a href="raw/fig/wechat.png">WeChat (微信)</a>&nbsp&nbsp 
 </p>
 
-共情能力对于实现口语对话系统中的自然交互至关重要，它能让机器识别年龄、性别、情绪等副语言线索，并做出恰当回应。
+共情能力对于实现口语对话系统中的自然交互至关重要，它要求机器精准捕捉年龄、性别、情绪等副语言线索，并给出富有共情的回应。
 近年来，端到端语音语言模型（可统一语音理解与生成功能）的发展为这一领域提供了极具潜力的解决方案。
 然而，当前技术仍面临诸多挑战：过度依赖大规模对话数据集、对传递共情至关重要的副语言线索提取不足，以及缺乏专门针对共情的数据集与评估框架。
 为解决这些问题，我们提出了 OSUM-EChat—— 一款开源的端到端口语对话系统，旨在增强共情交互能力，尤其适用于资源受限场景。
 基于[OSUM](https://github.com/ASLP-lab/OSUM/tree/main/OSUM)，OSUM-EChat 包含两大核心创新：（1）三阶段理解驱动的口语对话训练策略，该策略将大型语音理解模型的能力扩展到口语对话任务中；（2）语言 - 副语言双思维机制，通过思维链整合副语言理解与对话生成过程，使系统能够生成更具共情性的回应。这种方法在降低对大规模对话数据集依赖的同时，仍能保持高质量的共情交互。此外，我们还构建了 EChat-200K 数据集（一个丰富的共情语音到语音对话语料库）与 EChat-eval 基准（一套用于评估对话系统共情能力的综合框架）。实验结果表明，在共情响应能力方面，OSUM-EChat 优于现有的端到端口语对话模型，验证了其有效性。
+
+
+<p align="center">
+    <img src="images/osum-echat/demo_cn.png" width="80%"/>
+<p>
 
 ## Architecture
 
@@ -33,10 +38,19 @@
     <img src="images/osum-echat/system.png" width="80%"/>
 <p>
 
+
+
+
+
 ## 训练与推理指南及OSUM-EChat的更多细节
 <p align="left">
 如需了解OSUM-EChat的更多介绍信息，以及如何使用OSUM-EChat框架进行推理与训练的操作说明，请参考<a href="OSUM-EChat/README.md">**此处**</a>。
 </p>
+
+<br>
+<br>
+<br>
+<br>
 
 <p align="center">
    <h1>OSUM: Advancing Open Speech Understanding Models with Limited Resources in Academia</h1>
@@ -73,7 +87,7 @@ OSUM模型将Whisper编码器与Qwen2 LLM相结合，支持广泛的语音任务
 </p>
 
 
-## News and Updates
+# News and Updates
 
 ### 2025.8.14 🎉我们非常荣幸地推出全新端到端共情语音对话模型 ——OSUM-EChat，其相关论文已发布（[OSUM-EChat 论文](http://arxiv.org/abs/2508.09600)），代码及模型 checkpoint 将于近期开放。
 该模型以 OSUM 语音理解大模型为基础，通过 “理解-生成-共情” 三阶段训练流程，并创新性引入与共情相关的推理机制，在有限语音对话数据条件下，成功实现了业界领先的共情对话能力。据我们所知，这是业界首个依托语音理解大模型构建的共情对话模型，同时也是共情推理领域的开创性研究成果。
@@ -92,11 +106,11 @@ OSUM模型将Whisper编码器与Qwen2 LLM相结合，支持广泛的语音任务
 <br>
 
 
-## License Agreement
+# License Agreement
 
 我们使用的是 Apache 2.0 许可证。研究人员和开发人员可以自由使用我们的 OSUM 的代码和模型权重，甚至可用于商业用途。更多详细信息，请查看许可证文件[LICENSE.txt](LICENSE.txt)中的相关内容。
 <br>
-## Citation
+# Citation
 ```
 @article{geng2025osum,
   title={OSUM-EChat: Enhancing End-to-End Empathetic Spoken Chatbot via Understanding-Driven Spoken Dialogue},
@@ -114,7 +128,7 @@ OSUM模型将Whisper编码器与Qwen2 LLM相结合，支持广泛的语音任务
   year={2025}
 }
 ```
-## Contact Us
+# Contact Us
 
 如果您有兴趣向我们的研究团队留言，欢迎发送电子邮件至 `xlgeng@mail.nwpu.edu.cn`。
 <p align="center">
