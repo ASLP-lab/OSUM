@@ -6,10 +6,10 @@ test_data_path="**/data.list"
 infer_res_path="**/infer_res.scp"
 gpu_ids=(0 1 2 3 4 5 6 7)  # GPU ID列表（可根据实际可用GPU修改）
 per_gpu_processes=1  # 每个GPU上的进程数
-data_type="raw"  # 数据类型，raw或shards_full_data
+data_type="raw"  # 数据类型，raw or shard
+checkpoint_path="**/language_think_final.pt"
+cosyvoice_model_path="**/CosyVoice-300M-25Hz"
 
-
-true_text_path="**/test_text.scp"
 output_dir=$(dirname "$infer_res_path")
 
 
@@ -57,6 +57,8 @@ for ((i=0; i<total_processes; i++)); do
         --test_data_path "$split_input" \
         --infer_res_path "$split_output" \
         --data_type "$data_type" \
+        --checkpoint_path "$checkpoint_path" \
+        --cosyvoice_model_path "$cosyvoice_model_path" \
         --gpu_id "$current_gpu" &
 done
 

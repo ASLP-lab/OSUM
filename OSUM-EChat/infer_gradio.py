@@ -31,10 +31,10 @@ except ImportError:
 # 在文件开头添加参数解析
 CHECKPOINT_PATH_A="**/language_think_final.pt"
 CHECKPOINT_PATH_B="**/tag_think_final.pt"
+cosyvoice_model_path = "**/CosyVoice-300M-25Hz"
 CONFIG_PATH = "./conf/ct_config.yaml"
 NAME_A="language_think"
 NAME_B="tag_think"
-cosyvoice_model_path = "**/CosyVoice-300M-25Hz"
 
 
 

@@ -32,6 +32,8 @@ parser.add_argument('--test_data_path', type=str, help='config path')
 parser.add_argument('--infer_res_path', type=str,  help='data type')
 parser.add_argument('--gpu_id', type=int, help='gpu id')
 parser.add_argument('--data_type', type=str, help='task type')
+parser.add_argument('--checkpoint_path', type=str, help='checkpoint path')
+parser.add_argument('--cosyvoice_model_path', type=str, help='cosyvoice model path')
 
 args = parser.parse_args()
 
@@ -44,16 +46,16 @@ gpu_id = args.gpu_id
 data_type = args.data_type
 print(f'test_data_path: {test_data_path}, infer_res_path: {infer_res_path}, gpu_id: {gpu_id}, data_type: {data_type}')
 
-if data_type == "shards":
+if data_type == "shard":
     test_data_path = do_format_shard_manifest4one(test_data_path)
 dtype = torch.float32
 # export CUDA_VISIBLE_DEVICES=6
 device = torch.device(f'cuda:{gpu_id}')
 configs, test_conf = get_test_conf(config_path)
 
-checkpoint_path = "**/language_think_final.pt"
+checkpoint_path = args.checkpoint_path
+cosyvoice_model_path = args.cosyvoice_model_path
 config_path = "conf/ct_config.yaml"
-cosyvoice_model_path = "**/CosyVoice-300M-25Hz"
 
 prompt_wav_path = "./tts/assert/prompt.wav"
 prompt_audio_cache = {"拟人": load_wav(prompt_wav_path, 22050)}

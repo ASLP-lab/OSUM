@@ -2,229 +2,213 @@
         <a href="README_CN.md">中文</a> &nbsp｜ &nbsp English&nbsp&nbsp
 </p>
 
+## Training Strategy
+To enable OSUM-EChat to achieve empathetic dialogue in resource-constrained environments, the study proposes a three-stage training strategy called **"Understanding-Driven Spoken Dialogue"**, which consists of the stages of understanding, generation, and empathy. In the empathy stage, a **dual-thinking mechanism of linguistic and paralinguistic information** is introduced to explicitly separate paralinguistic and semantic information, thereby helping the model generate more empathetic responses.
 
-# Evaluation
- Comparison of Qwen2-Audio and our OSUM model. In most tasks, OSUM achieves a better
-performance than Qwen2-Audio despite using significantly fewer computational resources and training data.
+### Stage 1: Understanding
+The goal of this stage is to enable the LLM to understand both linguistic and paralinguistic information in speech. OSUM’s **“ASR+P” strategy** is employed (where *P* represents paralinguistic labels such as emotion, gender, age, and sound events). Multiple “ASR+P” tasks are jointly trained, with only the encoder and adapters being trainable.
+
+### Stage 2: Generation
+This stage aims to equip the OSUM-based understanding model with speech generation capabilities. A two-step training process is adopted: text-to-speech (TTS) generation and speech-to-speech (S2S) dialogue. Additionally, text-to-text (T2T) data is incorporated to maintain the model’s reasoning intelligence.
+
+### Stage 3: Empathy
+In this stage, linguistic and paralinguistic information obtained from speech understanding is integrated into the dialogue generation process, significantly improving the model’s ability to produce contextually coherent and empathetic responses. By introducing a **dual-thinking mechanism** before generating text and speech responses, the model first recognizes the linguistic content of the user’s speech, then infers paralinguistic details, and finally integrates these insights to generate appropriate responses.
+
+In the design of the **Chain of Thought (CoT)**, the study explores two different textual forms: **label-based CoT** and **natural language-based CoT**, to investigate how different approaches affect the model’s empathetic understanding and response generation.
+
+#### Label-Based CoT
+This form follows a fixed template structure. Specifically, the model first outputs the transcription text obtained via automatic speech recognition (ASR), extracting semantic information from the user’s input. Then, it sequentially outputs predefined paralinguistic labels such as age, gender, speech events, and emotion. The main advantage is that the CoT stage produces content with relatively fixed format and short length, making the process easy to control and efficient in extracting and integrating core paralinguistic cues. However, this approach has limitations: due to the restricted number and scope of predefined labels, it cannot fully express richer and more nuanced paralinguistic states, such as subtle shifts in tone intensity or fine-grained emotional transitions.
+
+#### Natural Language-Based CoT
+This form abandons the fixed label template in favor of natural, fluent language descriptions. The model generates coherent textual paragraphs: first interpreting the semantic meaning of the user’s speech (rather than merely transcribing it), then describing the paralinguistic details in depth — including specific manifestations of age characteristics, gender-related vocal traits, the contexts and features of various speech events, and fine-grained emotional layers and dynamics. The advantage of this method is its flexibility in overcoming label limitations, allowing the model to capture and express complex paralinguistic states more comprehensively, thereby providing richer grounding for empathetic response generation. However, its content is harder to control in length and structure, which may increase computational overhead and require stronger language organization abilities from the model.
+
+
+## Evaluation
+Automatic evaluation results on EChat-eval benchmark. Here, ‘U-Driven’ refers to the understanding-driven
+spoken dialogue training strategy, and ‘Dual Think’ refers to the linguistic-paralinguistic dual think mechanism.
 <p align="center">
-    <img src="../images/radar.jpg" width="80%"/>
+    <img src="../images/osum-echat/table1.png" width="65%"/>
 <p>
 
-Evaluation results of ASR tasks on public and internal test sets. The bold font represents the best
-result among the same test set. All internal results are inferred by ourselves.
+
+Human evaluation results of representative models
+on the EChat-eval benchmark. † ByteDance’s commercial system with response from a single fixed speaker.
 <p align="center">
-    <img src="../images/res_asr.jpg" width="80%"/>
+    <img src="../images/osum-echat/table3.png" width="65%"/>
 <p>
 
 
-Evaluation results of multi-tasking on public and internal test sets. The best results for each test set
-are highlighted in bold font. Results shown in blue font, as well as those on internal test sets, are inferred
-using the original released model by ourselves.
+
+Performance on VoiceBench Benchmarks.
 <p align="center">
-    <img src="../images/res_multi.jpg" width="80%"/>
+    <img src="../images/osum-echat/table2.png" width="100%"/>
 <p>
 
-<!--  We have provided **all** evaluation scripts to reproduce our results. Please refer to [eval_audio/EVALUATION.md](eval_audio/EVALUATION.md) for details.
-  --> 
+Performance of speech understanding tasks across multiple public datasets, encompassing various distinct speech comprehension tasks.
+<p align="center">
+    <img src="../images/osum-echat/table4.png" width="80%"/>
+<p>
 
 
-# How to Use the OSUM Model Framework for Training and Inference
 
-## Prepare for Environment
+````markdown
+## How to Use the OSUM-EChat Code Framework for Training and Inference
 
-Before you start, please make sure your Python environment is ready. The following is a recommended operation process. We assume that you have already installed the Conda software on your computer. If not, please refer to: [One-click Installation of Miniconda on Linux](https://blog.csdn.net/qq_41636123/article/details/130266232). We highly recommend that you run our code on a computer with a Linux system.
+### Preparing the Environment
+
+Before starting, make sure your Python environment is ready. Below is a suggested workflow. We assume you already have **conda** installed on your computer.  
+If not, please refer to: [Linux One-Click Install Miniconda](https://blog.csdn.net/qq_41636123/article/details/130266232).  
+We highly recommend running our code on a Linux system.
 
 ```shell
-# Create a new Conda environment
-conda create -n OSUM python=3.10
+# Create a new conda environment
+conda create -n OSUM-EChat python=3.10
 # Activate the newly created environment
-conda activate OSUM
-# Download our code and install the required Python packages
+conda activate OSUM-EChat
+# Download our code and install required python packages
 git clone https://github.com/ASLP-lab/OSUM.git
-cd OSUM
-# If you are training on a GPU, please first remove the entry of torch_npu in requirements.txt. If you are using an NPU, no action is required.
+cd OSUM/OSUM-EChat
+# If training on GPU, remove the torch_npu entry from requirements.txt. 
+# If training on NPU, no changes are needed.
 pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+````
+
+### Understanding Data Types
+
+This project supports three types of data: **raw**, **shard**, and **combine**.
+The **combine** type is newly designed based on Wenet’s existing raw and shard formats.
+
+#### **Raw Type**:
+
+Data is stored in **jsonl** format, one JSON object per line, with the following fields:
+
+```
+{
+"key": "1023390_bed51684_10", 
+"txt": "Hello sister, you want to join the expert service system, which shows you care a lot about this issue. Having professionals to answer your questions will definitely give you peace of mind. Don’t worry, such systems usually have detailed processes, take it step by step and you’ll join smoothly～", 
+"wav": "./common_utils/fake_data/raw/wav/random.wav", 
+"extra": {"age": "<ADULT>", "gender": "<FEMALE>", "think_str": "...", "question": "...", "speech_token": [...], "a_wav_path": "..."},
+"task": "<S2TCHAT> <TEXT2TOKEN> <THINK>"
+}
 ```
 
-## Inference
+Example:
 
-First, let's see how to perform inference.
+```
+./common_utils/fake_data/raw/data.list
+```
 
-The main file used is: OSUM/examples/osum/infer.sh
+#### **Shard Type**:
 
-### First, download the checkpoint:
+Data is packed into **tar files**, storing multiple entries together for efficient bulk loading.
 
-Checkpoint. Download the model checkpoint from our Hugging Face repository. You can download it using Python:
+Example:
+
+```
+./common_utils/fake_data/shard/shards_list.txt
+```
+
+Conversion script (from raw type):
+
+```shell
+python ./common_utils/fake_data/shard/do_make_shard_from_raw.py 
+```
+
+#### **Combine Type**:
+
+The shard format is efficient for reading but hard to modify. To address this, we designed the **combine type**, which stores audio in **tar packages** while metadata is stored in JSON files.
+
+Example:
+
+```
+./common_utils/fake_data/combine/combines_list.txt   # Stores mapping between tar and jsonl
+./common_utils/fake_data/combine/combines_tar_root.txt # Stores tar directory
+```
+
+* Tar packages must be in the same directory (tar-dir-path + tar-file-name = full path).
+* Shares the same type flag as “shard”.
+* Output files must be named **combines\_list.txt** and **combines\_tar\_root.txt**.
+
+Conversion script (from shard type):
+
+```shell
+python ./common_utils/fake_data/combine/do_make_combine_from_shard.py 
+```
+
+#### Data Testing
+
+The project provides scripts to directly construct dataloaders for all three data types:
+
+```shell
+python do_test_dataloader.py
+```
+
+---
+
+### Inference
+
+This project provides three types of **offline inference** (already open-sourced) and one **real-time online inference** (coming soon).
+
+#### Step 1. Download Model Checkpoints
 
 ```python
-# Download the .pt file from Hugging Face
 from huggingface_hub import hf_hub_download
-pt_file_path = hf_hub_download(repo_id="ASLP-lab/OSUM", filename="infer.pt")  # At this time, pt_file_path is directly the specific path of the downloaded checkpoint.
+
+# For natural language think model
+pt_file_path = hf_hub_download(repo_id="ASLP-lab/OSUM-EChat", filename="language_think_final.pt")  
+
+# For tag-based think model
+pt_file_path2 = hf_hub_download(repo_id="ASLP-lab/OSUM-EChat", filename="tag_think_final.pt")  
+
+# Token2wav model (compressed tar file)
+pt_file_path3 = hf_hub_download(repo_id="ASLP-lab/OSUM-EChat", filename="CosyVoice-300M-25Hz.tar")  
+
+# Extract token2wav model parameters
+import os
+os.system(f"tar -xvf {pt_file_path3}")  
 ```
 
-Or download it from the Hugging Face website: https://huggingface.co/ASLP-lab/OSUM
+#### Gradio-Based Offline Inference
 
-Then set the `ckpt` variable in `infer.sh`:
+Before running, set checkpoint paths in `./infer_gradio.py`:
+
+```python
+CHECKPOINT_PATH_A="**/language_think_final.pt"
+CHECKPOINT_PATH_B="**/tag_think_final.pt"
+cosyvoice_model_path = "**/CosyVoice-300M-25Hz"
+```
+
+* Loads **language\_think**, **tag\_think**, and **token2wav** (requires \~19G memory).
+* If `CHECKPOINT_PATH_B=None`, only **language\_think** is loaded.
+
+Run:
 
 ```shell
-ckpt_path=***/infer.sh
+python infer_gradio.py
 ```
 
-### Next, prepare the data
+#### Single Utterance Inference
 
-We support inference on two types of data (following the specifications of the [wenet](https://github.com/wenet-e2e/wenet) open-source framework):
-
-- Raw format: You need to pass in a JSONL format file, where each line is in the format of a JSON dictionary. The dictionary key values include "key": the unique identifier of the audio, "wav": the specific path of the audio (not limited to the WAV format), and "txt": the text corresponding to the audio. In actual inference scenarios, it can be any value, but please try to ensure the existence of this key value to avoid possible errors at the code level.
-
-  Specific example:
-
-  ```json
-  {"key": "BAC009S0764W0122", "wav": "***/wav/BAC009S0764W0122.wav", "txt": "First- and second-tier cities are also undergoing adjustments"}
-  ```
-
-- Shard_full_data format: It is more commonly used for training to accelerate the speed of the machine reading files and can also be used for inference. It saves several audio files (for example, 1000 files) in a tar package, and the content of the "key" exists as the file name. Taking the above audio entry as an example, in its tar package, it should be converted into the following two files: BAC009S0764W0122.txt and BAC009S0764W0122.wav. The file suffix is its corresponding variable value, and the file name is the unique identifier of the audio.
-
-When you have prepared the data list file, set the data file variable in `infer.sh`:
+Supports almost all task types: speech understanding, TTS, S2S dialogue, S2T dialogue, T2T dialogue, etc.
 
 ```shell
-data_path=***/data.jsonl
+python infer_runtime.py
 ```
 
-### Select the appropriate task
+#### Batch Inference
 
-The current open-source version of OSUM supports multiple tasks. You can select the task you want to infer according to the task tags in the `OSUM/examples/osum/conf/prompt_config.yaml` file and fill in the tag of the task you want to infer in `OSUM/examples/osum/infer.sh`. At the same time, please note that the tag in `prompt_config.yaml` contains spaces, and the tag written in `infer.sh` needs to manually remove the spaces (due to the limitations of shell syntax).
-
-Specific example:
+Provides batch inference using dataloaders, supporting all three data types.
 
 ```shell
-task="<TRANSCRIBE><GENDER>"  # This tag is used for the ASR + gender task
+bash infer_with_shards_or_raw.sh
 ```
 
-### Select the appropriate GPU/NPU
+#### Flask-Based Online Inference
 
-The OSUM model is trained on Huawei Ascend 910B, but the training and inference codes support both GPU and NPU. If training on a GPU, please set `train_backend` to `nccl` instead of `hccl` in the startup script.
+Coming soon.
 
-The inference of this project roughly requires 20G of video memory. If you have such a graphics card on your machine, set the serial number of the graphics card on which you want to perform inference:
+---
 
-```shell
-gpu_id=3
-```
+### Training
 
-### Start inference!
-
-The following is a complete example of `infer.sh`:
-
-```shell
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-lang=zh
-prompt_file=conf/prompt_stage4.yaml
-ckpt_path=./infer.sh
-data_path=./data/aishell/data.list
-data_type="raw"
-gpu_id=3
-output_dir=./output/aishell
-task="<TRANSCRIBE><GENDER>"
-bash decode/do_docode.sh --output_dir $output_dir --task $task --data_type $data_type --data_path $data_path --gpu_id $gpu_id --ckpt_path $ckpt_path --lang $lang --prompt_file $prompt_file
-```
-
-
-### How to Perform Inference More Directly?
-- For inference on a single audio file
-    ```shell
-    # Set the checkpoint_path variable in this file to the locally downloaded ckpt, and then set the corresponding audio path and prompt in the main function
-    python OSUM/examples/osum/runtime/infer_runtime.py
-    ```
-
-- Deploy and perform web-based inference
-    ```shell
-    # Deploy and start the service, which will deploy a test webpage on localhost 127.0.0.1:7860. You also need to set the checkpoint_path variable first.
-    python OSUM/examples/osum/runtime/infer_gradio.py
-    ```
-
-## Training
-
-Next, let's see how to perform training.
-
-The main files involved are: OSUM/examples/osum/run_huawei_2p_master.sh, OSUM/examples/osum/run_huawei_2p_rank1.sh, and OSUM/examples/osum/run_huawei_2p_rank2.sh
-
-This project supports multi-machine training by default. If the current code is not modified, it will perform 3-machine 8-card training by default.
-
-### Checkpoint download
-
-Same as the introduction in the Inference section.
-
-### Data preparation
-
-We strongly recommend using the shard_full_data format to maximize the reduction of the time consumption caused by loading data. The number of audio files contained in a single tar file is recommended to be 1000.
-
-After the data is prepared, you need to write the data list to the `OSUM/examples/osum/conf/data_config_huawei.yaml` file. The specific content of `data_config_huawei.yaml` is as follows:
-
-```yaml
-data_name1:
-  path: "***/shards_list.txt"
-  weight: 3  # Weight, triple the amount of data in this data list file
-data_name2:
-  path: "***/shards_list.txt"
-  weight: 1
-```
-
-Specific example of `shards_list.txt`:
-
-```txt
-***/***/0001.tar
-***/***/0002.tar
-***/***/0003.tar
-***/***/0004.tar
-......
-```
-
-### Multi-machine multi-card training
-
-Multiple machines need multiple startup files, and one machine needs to be set as the coordinator machine. For the current code, we execute the file `OSUM/examples/osum/run_huawei_2p_master.sh` on the coordinator machine and execute `OSUM/examples/osum/run_huawei_2p_rank1.sh` and `OSUM/examples/osum/run_huawei_2p_rank2.sh` on other machines respectively.
-
-We should ensure that the contents of these three files are almost identical, except for the `node_rank` here:
-
-```shell
-torchrun --nnodes=$num_nodes --nproc_per_node=$num_gpus --node_rank=0 \
-         --master_addr=$HOST_NODE_ADDR --master_port=$HOST_PORT \
-```
-
-In `run_huawei_2p_master.sh`, you need to set `node_rank` to 0, and on other machines, it should be 1, 2, 3, 4, ... in sequence.
-
-For other configurations, there are:
-
-- Number of machines
-
-  ```
-  num_nodes=3
-  ```
-
-- IP address of the coordinator machine
-
-  ```
-  HOST_NODE_ADDR=192.168.0.15
-  ```
-
-- Other variables
-
-  ```
-  checkpoint=*** # If it is empty, it will be randomly initialized
-  data=***  # Directory where the data is stored
-  dir=***   # Location where the new checkpoint will be stored
-  ```
-
-### Single-machine training
-
-You only need to set the number of machines in `OSUM/examples/osum/run_huawei_2p_master.sh` to 1 and set the coordinator IP to the local machine IP.
-
-During single-machine training, if you want to modify the number of training machines, you only need to flexibly modify:
-
-```shell
-export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7"
-```
-
-### Training hyperparameters
-
-The specific parameters are set in the following file:
-
-OSUM/examples/osum/conf/config_llm_huawei_base-version.yaml
+Coming soon.

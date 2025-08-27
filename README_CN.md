@@ -1,6 +1,6 @@
 <p align="left">
-        &nbsp中文&nbsp&nbsp ｜ <a href="README.md">English</a> &nbsp ｜ <a href="README_JP.md">日本語</a> &nbsp
-</p>
+        中文&nbsp&nbsp ｜ <a href="README.md">English</a> &nbsp ｜ <a href="README_JP.md">日本語</a> &nbsp
+<p>
 
 
 <p align="center">
