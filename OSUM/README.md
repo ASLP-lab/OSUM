@@ -62,6 +62,7 @@ from huggingface_hub import hf_hub_download
 pt_file_path = hf_hub_download(repo_id="ASLP-lab/OSUM", filename="infer.pt")  # At this time, pt_file_path is directly the specific path of the downloaded checkpoint.
 ```
 
+
 Or download it from the Hugging Face website: https://huggingface.co/ASLP-lab/OSUM
 
 Then set the `ckpt` variable in `infer.sh`:
