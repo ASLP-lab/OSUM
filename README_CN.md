@@ -14,7 +14,7 @@
 <p>
 
 <p align="center">
- <a href="https://www.osum-echat.npu-aslp.org/"> Test Page</a> </a>&nbsp
+ <a href="https://www.osum-echat.npu-aslp.org/"> Test Page</a> |   <a href="https://huggingface.co/ASLP-lab/OSUM-EChat"> Ckpt</a>
 <br>
 📑 <a href="https://www.arxiv.org/abs/2508.09600">Paper</a> &nbsp&nbsp | &nbsp&nbsp 📑 <a href="https://aslp-lab.github.io/osum-echat.github.io/">Demo</a> &nbsp&nbsp | &nbsp&nbsp 💬 <a href="raw/fig/wechat.png">WeChat (微信)</a>&nbsp&nbsp 
 </p>
@@ -75,7 +75,7 @@
 <p>
 
 <p align="center">
- <a href="https://huggingface.co/spaces/ASLP-lab/OSUM"> Huggingface Test Page</a> </a>&nbsp
+ <a href="https://huggingface.co/spaces/ASLP-lab/OSUM"> Huggingface Test Page</a> |   <a href="https://huggingface.co/ASLP-lab/OSUM"> Ckpt</a>
 <br>
 📑 <a href="https://arxiv.org/abs/2501.13306v2">Paper (v2.0)</a> &nbsp&nbsp | &nbsp&nbsp 📑 <a href="https://aslp-lab.github.io/OSUM.github.io/">Demo</a> &nbsp&nbsp | &nbsp&nbsp 💬 <a href="images/introduction.md">WeChat (微信)</a>&nbsp&nbsp 
 </p>

@@ -16,7 +16,7 @@ Xuelong Geng, Qijie Shao, Hongfei Xue, Shuiyuan Wang, Hanke Xie, Zhao Guo, Yi Zh
 <p>
 
 <p align="center">
- <a href="https://www.osum-echat.npu-aslp.org/"> Test Page</a> </a>&nbsp
+ <a href="https://www.osum-echat.npu-aslp.org/"> Test Page</a> |   <a href="https://huggingface.co/ASLP-lab/OSUM-EChat"> Ckpt</a>
 <br>
 📑 <a href="https://www.arxiv.org/abs/2508.09600">Paper</a> &nbsp&nbsp | &nbsp&nbsp 📑 <a href="https://aslp-lab.github.io/osum-echat.github.io/">Demo</a> &nbsp&nbsp | &nbsp&nbsp 💬 <a href="raw/fig/wechat.png">WeChat (微信)</a>&nbsp&nbsp 
 </p>
@@ -58,6 +58,11 @@ This form follows a fixed template structure. Specifically, the model first outp
 
 #### Natural Language-Based CoT
 This form abandons the fixed label template in favor of natural, fluent language descriptions. The model generates coherent textual paragraphs: first interpreting the semantic meaning of the user’s speech (rather than merely transcribing it), then describing the paralinguistic details in depth — including specific manifestations of age characteristics, gender-related vocal traits, the contexts and features of various speech events, and fine-grained emotional layers and dynamics. The advantage of this method is its flexibility in overcoming label limitations, allowing the model to capture and express complex paralinguistic states more comprehensively, thereby providing richer grounding for empathetic response generation. However, its content is harder to control in length and structure, which may increase computational overhead and require stronger language organization abilities from the model.
+
+<p align="center">
+    <img src="../images/osum-echat/dual_think_en.png" width="80%"/>
+<p>
+
 
 
 ## Evaluation

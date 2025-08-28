@@ -10,7 +10,7 @@
 <p>
 
 <p align="center">
- <a href="https://www.osum-echat.npu-aslp.org/"> Test Page</a> </a>&nbsp
+ <a href="https://www.osum-echat.npu-aslp.org/"> Test Page</a> |   <a href="https://huggingface.co/ASLP-lab/OSUM"> Ckpt</a>
 <br>
 📑 <a href="https://www.arxiv.org/abs/2508.09600">Paper</a> &nbsp&nbsp | &nbsp&nbsp 📑 <a href="https://aslp-lab.github.io/osum-echat.github.io/">Demo</a> &nbsp&nbsp | &nbsp&nbsp 💬 <a href="raw/fig/wechat.png">WeChat (微信)</a>&nbsp&nbsp 
 </p>
@@ -53,6 +53,11 @@
 基于标签的CoT：这种形式采用固定的模板结构进行生成。具体而言，模型会先输出自动语音识别（ASR）得到的转录文本，以此作为对用户输入的语义信息的提取；随后，会依次输出年龄、性别、语音事件、情感等预先定义好的副语言信息标签。其显著优势在于，CoT阶段生成的内容具有相对固定的格式，且长度较短，整体过程易于控制，能够高效地完成对核心副语言线索的提取与整合。不过，这种方式也存在一定局限，由于受限于预设标签的数量和范围，它无法充分表达那些未被标签涵盖的、更丰富细腻的副语言状态，例如语音中的语气强弱变化、情绪的微妙转折等。
 
 基于自然语言的CoT：此形式摒弃了固定的标签模板，转而采用自然流畅的语言描述来完成思维链过程。模型会以连贯的文本段落，先对用户输入语音中的语义内容进行阐释（而非单纯转录），再详细描述其中蕴含的副语言信息，包括但不限于年龄特征的具体体现、性别相关的语音特质、各类语音事件的发生场景与特征，以及情感的细腻层次和变化趋势等。这种方式的优势在于能够突破标签的限制，更灵活、全面地捕捉和表达复杂的副语言状态，为后续生成更具共情性的回应提供更丰富的依据；但相对而言，其生成内容的长度和结构较难控制，可能会增加模型的计算负担，且对模型的语言组织能力提出了更高要求。
+
+<p align="center">
+    <img src="../images/osum-echat/dual_think_cn.png" width="80%"/>
+<p>
+
 
 
 ## 推理结果

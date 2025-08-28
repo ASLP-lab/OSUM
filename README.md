@@ -17,7 +17,7 @@ Xuelong Geng, Qijie Shao, Hongfei Xue, Shuiyuan Wang, Hanke Xie, Zhao Guo, Yi Zh
 <p>
 
 <p align="center">
- <a href="https://www.osum-echat.npu-aslp.org/"> Test Page</a> </a>&nbsp
+ <a href="https://www.osum-echat.npu-aslp.org/"> Test Page</a>&nbsp; |   <a href="https://huggingface.co/ASLP-lab/OSUM-EChat"> Ckpt</a>
 <br>
 📑 <a href="https://www.arxiv.org/abs/2508.09600">Paper</a> &nbsp&nbsp | &nbsp&nbsp 📑 <a href="https://aslp-lab.github.io/osum-echat.github.io/">Demo</a> &nbsp&nbsp | &nbsp&nbsp 💬 <a href="raw/fig/wechat.png">WeChat (微信)</a>&nbsp&nbsp 
 </p>
@@ -46,6 +46,14 @@ This section presents an overview of the overall architecture and core tasks of 
 For more introductory information about OSUM-EChat and instructions on how to use the OSUM-EChat framework for inference and training, please refer to <a href="OSUM-EChat/README.md">HERE</a>.
 </p>
 
+## News and Updates
+### 2025.8.27 🔥 We have open-sourced OSUM-EChat! The offline inference code, model parameters, demo page, and experience page of OSUM-EChat are now available. For details, please refer to <a href="OSUM-EChat/README.md">HERE</a>.
+The model training code, real-time dialogue deployment code, EChat-200K dataset, and evaluation data will be released soon.
+
+### 2025.8.14 🎉 We are extremely honored to introduce OSUM-EChat, a new end-to-end empathetic speech dialogue model. Its related paper has been published ([OSUM-EChat Paper](http://arxiv.org/abs/2508.09600)), and the code and model checkpoints will be made available very soon.
+
+Built on the OSUM large-scale speech understanding model, this model adopts a three-stage training process of "understanding-generation-empathy" and innovatively incorporates empathy-related reasoning mechanisms. It has successfully achieved industry-leading empathetic dialogue capabilities under the condition of limited speech dialogue data. To the best of our knowledge, this is the first empathetic dialogue model in the industry built upon a large-scale speech understanding model, and also a pioneering research achievement in the field of empathetic reasoning.
+
 
 
 <br>
@@ -70,7 +78,7 @@ Xuelong Geng, Kun Wei, Qijie Shao, Shuiyun Liu*, Zhennan Lin*, Zhixian Zhao*, Gu
 
 
 <p align="center">
- <a href="https://huggingface.co/spaces/ASLP-lab/OSUM"> Huggingface Test Page</a> </a>&nbsp
+ <a href="https://huggingface.co/spaces/ASLP-lab/OSUM"> Huggingface Test Page</a>|   <a href="https://huggingface.co/ASLP-lab/OSUM"> Ckpt</a>
 <br>
 📑 <a href="https://arxiv.org/abs/2501.13306v2">Paper (v2.0)</a> &nbsp&nbsp | &nbsp&nbsp 📑 <a href="https://aslp-lab.github.io/OSUM.github.io/">Demo</a> &nbsp&nbsp | &nbsp&nbsp 💬 <a href="images/introduction.md">WeChat (微信)</a>&nbsp&nbsp 
 </p>
@@ -95,11 +103,7 @@ The OSUM model combines the Whisper encoder with the Qwen2 LLM, supporting a wid
 For more introductory information about OSUM and instructions on how to use the OSUM framework for inference and training, please refer to <a href="OSUM/README.md">HERE</a>.
 </p>
 
-# News and Updates
-### 2025.8.14 🎉 We are extremely honored to introduce OSUM-EChat, a new end-to-end empathetic speech dialogue model. Its related paper has been published ([OSUM-EChat Paper](http://arxiv.org/abs/2508.09600)), and the code and model checkpoints will be made available very soon.
-
-Built on the OSUM large-scale speech understanding model, this model adopts a three-stage training process of "understanding-generation-empathy" and innovatively incorporates empathy-related reasoning mechanisms. It has successfully achieved industry-leading empathetic dialogue capabilities under the condition of limited speech dialogue data. To the best of our knowledge, this is the first empathetic dialogue model in the industry built upon a large-scale speech understanding model, and also a pioneering research achievement in the field of empathetic reasoning.
-
+## News and Updates
 We have conducted two explorations in the field of empathetic reasoning: label-based reasoning and natural language-based reasoning. Although both reasoning mechanisms have brought about performance improvements, we found that the natural language-based reasoning mechanism can yield more fluent responses and better facilitate the model's capture of subtle paralinguistic cues. The current version of the paper has elaborated on the three-stage training process and the label-based reasoning mechanism, and the content related to the natural language-based reasoning mechanism will be supplemented in the upcoming update.
 ### 2025.2.16 🎉 We updated the technical report [OSUM technical report v2.0](https://arxiv.org/abs/2501.13306v2) and released the [checkpoint](https://huggingface.co/ASLP-lab/OSUM), and the online [test page](https://huggingface.co/spaces/ASLP-lab/OSUM) on hugging face.
 In technical report v2.0, the OSUM model has gone through more training steps and the training data volume has increased to 50.5K hours (as compared to 44.1K hours in v1.0) 
