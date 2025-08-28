@@ -61,28 +61,57 @@
 
 
 ## 推理结果
-EChat-eval 基准测试的自动评估结果。其中，“U-Driven” 指的是理解驱动的口语对话训练策略，“Dual Think” 指的是语言 - 副语言双重思维机制。
+
+
+
+### 共情语音对话
+
+在 EChat-eval 基准的评估中，OSUM-EChat 在共情对话任务上表现优异：在各类共情对话场景中，其获得的 GPT-4o 自动评分均处于高水平，尤其在多标签场景下表现突出，且对输入语音中多样声学事件的处理能力较强，具体结果如表 1 所示。
 <p align="center">
-    <img src="../images/osum-echat/table1.png" width=65%"/>
-<p>
+    <img src="../images/osum-echat/table1.png" width="65%"/>
+</p>
+<p align="center"><b>表1：EChat-eval基准测试的自动评估结果。其中，“U-Driven”指的是理解驱动的口语对话训练策略，“Dual Think”指的是语言-副语言双重思维机制。</b></p>
 
+EChat-eval 的人工评估结果进一步显示，OSUM-EChat 的综合表现优于 Qwen2.5-Omni；在情感维度的共情对话测试案例中，其性能优异，但仍逊于商业系统。值得关注的是，在其他副语言维度（如年龄、性别、声音事件等）的共情对话任务中，商业系统暂无法有效捕捉相关线索，详细数据如表 2 所示。
 
+消融实验结果验证：将语音理解模型（OSUM）应用于口语对话任务，并结合 “语言 - 副语言双重思维机制”，可显著提升模型的共情对话能力，具体验证数据如表 1 所示。
 
-EChat-eval 基准测试中代表性模型的人工评估结果。† 字节跳动的商用系统，仅由单一固定说话人提供回复。
 <p align="center">
     <img src="../images/osum-echat/table3.png" width="65%"/>
-<p>
+</p>
+<p align="center"><b>表2：代表性模型在EChat-eval基准测试上的人工评估结果。† 字节跳动的商用系统，仅由单一固定说话人提供响应。</b></p>
 
+### 语音基础能力
 
-VoiceBench 基准测试的性能表现。
+OSUM-EChat 在语言智能、语音理解、语音合成三大语音基础能力的评估中，均展现出优异且稳定的性能表现，具体分析如下：
+
+#### (1) 语言智能
+
+依托大规模文本对话数据及研究团队内部构建的知识类语音问答数据集，OSUM-EChat 的语言智能水平与业界主流端到端语音对话模型相当，口语问答任务的具体评测结果如表 3 所示。
+
 <p align="center">
     <img src="../images/osum-echat/table2.png" width="100%"/>
-<p>
+</p>
+<p align="center"><b>表3：在VoiceBench基准测试中的性能表现</b></p>
 
-多个公开数据集上语音理解任务的表现，涵盖了多种不同的语音理解任务。
+#### (2) 语音理解
+
+本研究在语音识别（ASR）、声音事件识别、情感识别、年龄识别、性别识别五大任务的开源测试集上，对 OSUM-EChat 的语音理解能力进行验证。结果表明，其性能与语音理解大模型 OSUM 基本持平（该模型LLM基座为Qwen-7B），且已接近工业级语音理解模型 Qwen2-Audio 的水平。
+
 <p align="center">
     <img src="../images/osum-echat/table4.png" width="80%"/>
-<p>
+</p>
+<p align="center"><b>表4：语音理解任务的性能表现</b></p>
+
+#### (3) 语音合成
+
+本研究在 SEED 测试集上对 OSUM-EChat 的文本转语音（TTS）能力进行评测，结果显示：其 TTS 性能优于 CosyVoice 模型，但与工业级语音对话模型及专业 TTS 模型相比仍存在差距，详细指标（词错误率、字错误率）如表 4 所示。
+<p align="center">
+    <img src="../images/osum-echat/table5.png" width="60%"/>
+</p>
+<p align="center"><b>表5： SEED 测试集上 OSUM-EChat 与近期口语对话模型的性能对比（单位：%，↓表示指标越优）</b></p>
+
+
 
 
 ## 如何使用OSUM-EChat的代码框架来训练和推理

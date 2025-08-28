@@ -24,8 +24,6 @@ using the original released model by ourselves.
     <img src="../images/res_multi.jpg" width="80%"/>
 <p>
 
-<!--  We have provided **all** evaluation scripts to reproduce our results. Please refer to [eval_audio/EVALUATION.md](eval_audio/EVALUATION.md) for details.
-  --> 
 
 
 # How to Use the OSUM Model Framework for Training and Inference

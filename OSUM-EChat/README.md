@@ -18,7 +18,7 @@ Xuelong Geng, Qijie Shao, Hongfei Xue, Shuiyuan Wang, Hanke Xie, Zhao Guo, Yi Zh
 <p align="center">
  <a href="https://www.osum-echat.npu-aslp.org/"> Test Page</a> |   <a href="https://huggingface.co/ASLP-lab/OSUM-EChat"> Ckpt</a>
 <br>
-📑 <a href="https://www.arxiv.org/abs/2508.09600">Paper</a> &nbsp&nbsp | &nbsp&nbsp 📑 <a href="https://aslp-lab.github.io/osum-echat.github.io/">Demo</a> &nbsp&nbsp | &nbsp&nbsp 💬 <a href="raw/fig/wechat.png">WeChat (微信)</a>&nbsp&nbsp 
+📑 <a href="https://www.arxiv.org/abs/2508.09600">Paper</a> &nbsp&nbsp | &nbsp&nbsp 📑 <a href="https://aslp-lab.github.io/osum-echat.github.io/">Demo</a> &nbsp&nbsp | &nbsp&nbsp 💬 <a href="../images/wechat.png">WeChat (微信)</a>&nbsp&nbsp 
 </p>
 
 Empathy is crucial in enabling natural interactions within spoken dialogue systems, allowing machines to recognize and respond appropriately to paralinguistic cues such as age, gender, and emotion. 
@@ -65,31 +65,62 @@ This form abandons the fixed label template in favor of natural, fluent language
 
 
 
+
 ## Evaluation
-Automatic evaluation results on EChat-eval benchmark. Here, ‘U-Driven’ refers to the understanding-driven
-spoken dialogue training strategy, and ‘Dual Think’ refers to the linguistic-paralinguistic dual think mechanism.
+
+
+### Empathetic Voice Dialogue
+
+In the evaluation using the EChat-eval benchmark, OSUM-EChat demonstrated excellent performance in empathetic dialogue tasks. It achieved high GPT-4o automatic scores across various empathetic dialogue scenarios, particularly excelling in multi-label scenarios. Additionally, it showed strong capability in processing diverse acoustic events in input speech. Detailed results are presented in Table 1.
+
 <p align="center">
     <img src="../images/osum-echat/table1.png" width="65%"/>
-<p>
+</p>
+<p align="center"><b>Table 1: Automatic evaluation results on EChat-eval benchmark. Here, 'U-Driven' refers to the understanding-driven spoken dialogue training strategy, and 'Dual Think' refers to the linguistic-paralinguistic dual think mechanism.</b></p>
 
+Human evaluation results from EChat-eval further indicate that OSUM-EChat's overall performance surpasses Qwen2.5-Omni. It demonstrated excellent performance in empathetic dialogue test cases within the emotional dimension, though it still lags behind commercial systems. Notably, in empathetic dialogue tasks involving other paralinguistic dimensions (such as age, gender, sound events, etc.), commercial systems currently cannot effectively capture relevant cues. Detailed data is shown in Table 2.
 
-Human evaluation results of representative models
-on the EChat-eval benchmark. † ByteDance’s commercial system with response from a single fixed speaker.
+Ablation experiment results verified that applying the speech understanding model (OSUM) to spoken dialogue tasks, combined with the "linguistic-paralinguistic dual thinking mechanism," can significantly enhance the model's empathetic dialogue capabilities. Specific verification data is presented in Table 1.
+
 <p align="center">
     <img src="../images/osum-echat/table3.png" width="65%"/>
-<p>
+</p>
+<p align="center"><b>Table 2: Human evaluation results of representative models on the EChat-eval benchmark. † ByteDance's commercial system with response from a single fixed speaker.</b></p>
 
+### Basic Voice Capabilities
 
+OSUM-EChat demonstrated excellent and stable performance in evaluations of three core voice capabilities: language intelligence, speech understanding, and speech synthesis. Detailed analyses are as follows:
 
-Performance on VoiceBench Benchmarks.
+#### (1) Language Intelligence
+
+Leveraging large-scale text dialogue data and an internally constructed knowledge-based voice question-answering dataset, OSUM-EChat's language intelligence level is comparable to mainstream industry end-to-end voice dialogue models. Specific evaluation results for spoken question-answering tasks are shown in Table 3.
+
 <p align="center">
     <img src="../images/osum-echat/table2.png" width="100%"/>
-<p>
+</p>
+<p align="center"><b>Table 3: Performance on VoiceBench Benchmarks.</b></p>
 
-Performance of speech understanding tasks across multiple public datasets, encompassing various distinct speech comprehension tasks.
+#### (2) Speech Understanding
+
+This research verified OSUM-EChat's speech understanding capabilities on open-source test sets for five tasks: Automatic Speech Recognition (ASR), sound event recognition, emotion recognition, age recognition, and gender recognition. Results indicate that its performance is roughly equivalent to the speech understanding large model OSUM (with Qwen-7B as its LLM base) and approaches the level of the industrial-grade speech understanding model Qwen2-Audio.
+
 <p align="center">
     <img src="../images/osum-echat/table4.png" width="80%"/>
-<p>
+</p>
+<p align="center"><b>Table 4: Performance of speech understanding tasks</b></p>
+
+#### (3) Speech Synthesis
+
+In this study, the Text-to-Speech (TTS) capability of OSUM-EChat was evaluated on the SEED test set. The results show that its TTS performance is superior to that of the CosyVoice model; however, there is still a gap when compared with industrial-grade voice dialogue models and professional TTS models. Detailed metrics (Word Error Rate, Character Error Rate) are presented in Table 5.
+
+<p align="center">
+    <img src="../images/osum-echat/table5.png" width="60%"/>
+</p>
+<p align="center"><b>Table 5: Performance comparison between OSUM-EChat and recent spoken dialogue models on the SEED test set (Unit: %, ↓ indicates better performance of the metric)</b></p>
+
+
+
+
 
 
 
