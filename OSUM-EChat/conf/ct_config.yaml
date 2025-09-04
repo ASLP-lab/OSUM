@@ -1,7 +1,7 @@
 model: osum_echat
 
 # llm_path
-llm_path: &llm_path "/home/A02_tmpdata3/ckpt/Qwen2.5-3B-Instruct"
+llm_path: &llm_path "Qwen/Qwen2.5-3B-Instruct"
 #
 # model config
 downsample_rate: 4 # 1 2 4 8
