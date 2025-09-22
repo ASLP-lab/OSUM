@@ -213,7 +213,7 @@ def add_deepspeed_args(parser):
                         default='model_only',
                         choices=['model_only', 'model+optimizer'],
                         help='save model/optimizer states')
-    # DeepSpeed automatically add '--deepspeed' and '--deepspeed_config' to parser
+    # DeepSpeed automaticly add '--deepspeed' and '--deepspeed_config' to parser
     try:
         parser = deepspeed.add_config_arguments(parser)
     except Exception as e:
@@ -298,7 +298,7 @@ def check_modify_and_save_config(args, configs, symbol_table):
         #               == gradient_clipping (in ds_config.json)`
         #   The reason for such consistence checking lies in that deepspeed's native
         #   dataloader uses PyTorch's torch.utils.data.DistributedSampler which does
-        #   not support IterableDataset, IterableDataset is extremely useful in large
+        #   not support IterableDataset, IterableDataset is extremly useful in large
         #   scale training because it lets you stream the data without having to
         #   download the complete dataset.
         #       ref: https://github.com/microsoft/DeepSpeed/issues/1371

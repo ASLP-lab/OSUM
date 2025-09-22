@@ -105,7 +105,7 @@ Or download it from the Hugging Face website: https://huggingface.co/ASLP-lab/OS
 Then set the `ckpt` variable in `infer.sh`:
 
 ```shell
-ckpt_path=***/infer.sh
+ckpt_path=***/infer.sh  # Set the path of the downloaded checkpoint here
 ```
 
 ### Next, prepare the data
@@ -156,11 +156,11 @@ The following is a complete example of `infer.sh`:
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 lang=zh
 prompt_file=conf/prompt_stage4.yaml
-ckpt_path=./infer.sh
-data_path=./data/aishell/data.list
+ckpt_path=**/infer.sh  # Set the path of the downloaded checkpoint here
+data_path=**/data.list
 data_type="raw"
 gpu_id=3
-output_dir=./output/aishell
+output_dir=**/output
 task="<TRANSCRIBE><GENDER>"
 bash decode/do_docode.sh --output_dir $output_dir --task $task --data_type $data_type --data_path $data_path --gpu_id $gpu_id --ckpt_path $ckpt_path --lang $lang --prompt_file $prompt_file
 ```

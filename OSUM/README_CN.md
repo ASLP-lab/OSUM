@@ -37,7 +37,7 @@ pt_file_path = hf_hub_download(repo_id="ASLP-lab/OSUM", filename="infer.pt") # �
 然后在infer.sh中设置ckpt变量：
 
 ```shell
-ckpt_path=***/infer.sh
+ckpt_path=***/infer.sh # 请将***替换为下载后的ckpt的具体路径
 ```
 
 ### 接着准备数据
@@ -90,11 +90,11 @@ gpu_id=3
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 lang=zh 
 prompt_file=conf/prompt_stage4.yaml
-ckpt_path=./infer.sh
-data_path=./data/aishell/data.list
+ckpt_path=**/infer.sh # 请将***替换为下载后的ckpt的具体路径
+data_path=**/data.list
 data_type="raw"
 gpu_id=3  
-output_dir=./output/aishell
+output_dir=./**
 task="<TRANSCRIBE><GENDER>"
 bash decode/do_docode.sh --output_dir $output_dir --task $task --data_type $data_type --data_path $data_path --gpu_id $gpu_id --ckpt_path $ckpt_path --lang $lang --prompt_file $prompt_file
 ```
