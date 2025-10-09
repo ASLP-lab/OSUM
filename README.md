@@ -47,7 +47,7 @@ For more introductory information about OSUM-EChat and instructions on how to us
 </p>
 
 ## News and Updates
-### 2025.10.09 🔥 The model training code is now available! The related code commit is available [HERE](https://github.com/ASLP-lab/OSUM/commit/60beb2631d1ce0f0ef18ce791e45cd29793bf9e7)查看。
+### 2025.10.09 🔥 The model training code is now available! The related code commit is available [HERE](https://github.com/ASLP-lab/OSUM/commit/60beb2631d1ce0f0ef18ce791e45cd29793bf9e7).
 
 ### 2025.8.27 🔥 We have open-sourced OSUM-EChat! The offline inference code, model parameters, demo page, and experience page of OSUM-EChat are now available. For details, please refer to <a href="OSUM-EChat/README.md">HERE</a>.
 The model training code, real-time dialogue deployment code, EChat-200K dataset, and evaluation data will be released soon.
