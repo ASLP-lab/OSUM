@@ -1,0 +1,3 @@
+data_for_showing:
+  path: "*/shards_list.txt"
+  weight: 10
