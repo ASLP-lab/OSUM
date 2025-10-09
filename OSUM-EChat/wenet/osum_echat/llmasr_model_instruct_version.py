@@ -227,6 +227,477 @@ class LLMASR_Model(nn.Module):
         speech_token_labels_mask = ~speech_tokens_pad_mask
         return speech_token_labels_embeds, speech_token_labels_target, speech_token_labels_mask
 
+    def _get_embedding_for_history(self, history_batch, device):
+        """
+        prompt_patern1,prompt,history, wav, prompt_patern2,txt,answer_wav,
+        historcy_batch的内容是：
+        [   big_embed,
+            [
+
+                {wav: feat （L，D:80)，->过encoder+link ,得到（L1, 2048)
+                 txt: labels (L，), ->labels_embeds = self.embed_tokens(labels) -> (L2, 2048)， 带txt eos
+                },->(L1+L2, 2048)
+                {wav: feat （L，D)，
+                 txt: labels (L，),
+                },->(L3+L4, 2048)
+            ]-> (L1+L2+L3+L4, 2048)，len:L1+L2+L3+L4
+            [],->(1, 2048) ,len:0
+            [
+                {wav: feat （L，D)，
+                 txt: labels (L，),
+                },
+            ],-> (L1+L2, 2048),len:L1+L2
+        ]
+        将每一条的历史信息的embedding拼接起来,如果有空历史信息，则用0pad, 最后得到pad后的history_embedding(B, L, D), history_lens(B)
+        Args:
+            history_batch:
+            device:
+
+        Returns:
+            history_embedding: B, L, D
+            history_lens: B
+
+        """
+        assistant_start ="<|im_end|>\n<|im_start|>assistant\n"
+        assistant_start_id = self.tokenizer([assistant_start], return_tensors="pt"
+                                         )['input_ids'].to(device)
+        assistant_start_embedding = self.embed_tokens(assistant_start_id.squeeze(0))
+        assistant_end ="<|im_end|>\n"
+        assistant_end_id = self.tokenizer([assistant_end], return_tensors="pt"
+                                       )['input_ids'].to(device)
+        assistant_end_embedding = self.embed_tokens(assistant_end_id.squeeze(0))
+        user_start = "<|im_start|>user\n"
+        user_start_id = self.tokenizer([user_start], return_tensors="pt"
+                                        )['input_ids'].to(device)
+        user_start_embedding = self.embed_tokens(user_start_id.squeeze(0))
+        user_end ="<|im_end|>\n"
+        user_end_id = self.tokenizer([user_end], return_tensors="pt"
+                                      )['input_ids'].to(device)
+        user_end_embedding = self.embed_tokens(user_end_id.squeeze(0))
+        batch_embeddings = []
+        history_lens = []
+        # 判断是否所有样本都没有历史
+        if all(len(history) == 0 for history in history_batch):
+            return None, None
+
+        for history in history_batch:
+            history_embeds = []
+
+            for item in history:
+                wav_feat = item['wav'].to(device)  # shape: (L, D)
+                wav_feat = wav_feat.unsqueeze(0).to(device) # shape: (1, L, D)
+                wav_embed, wav_mask = self._get_embedding_from_wav(wav_feat, torch.tensor([wav_feat.size(1)], device=device, dtype=torch.long))
+                wav_embed = wav_embed.squeeze(0)  # shape: (L, D)
+                if len(history_embeds) != 0:
+                    history_embeds.append(user_start_embedding) # 第一个user start 不要
+                history_embeds.append(wav_embed)
+                history_embeds.append(user_end_embedding)
+                history_embeds.append(assistant_start_embedding)
+                labels = item['txt']  # shape: (L,)
+                labels = torch.tensor(labels, device=device, dtype=torch.long)
+                embed = self.embed_tokens(labels)  # (L2, D)，一般 L2 = L
+                history_embeds.append(embed)
+                history_embeds.append(assistant_end_embedding)
+            history_embeds.append(user_start_embedding) # 最后添加一个user start
+
+            if history_embeds:
+                # 拼接所有历史条目的 embedding: (sum(Li), D)
+                full_embed = torch.cat(history_embeds, dim=0)
+                history_lens.append(full_embed.size(0))
+            else:
+                # 空历史
+                full_embed = torch.zeros((1, self.embed_tokens.embedding_dim), device=device)
+                history_lens.append(0)
+
+            batch_embeddings.append(full_embed)
+
+        # padding 到 batch 中最大长度
+        padded_embeddings = pad_sequence(batch_embeddings, batch_first=True, padding_value=0.0)  # (B, L, D)
+        history_lens = torch.tensor(history_lens, device=device, dtype=torch.long)
+        padded_embeddings = padded_embeddings.to(device)
+
+        return padded_embeddings, history_lens
+
+
+    def forward(self,
+                batch,
+                device,
+                ):
+        """"""
+        output_type = batch['output_type']
+        # qwen_instruct_prompt_pattern_chat = "<|im_start|>system\nYou are OSUM-chat, a dialogue. You understand both the meaning and paralinguistic cues in speech, as well as input text, and respond appropriately.<|im_end|>\n<|im_start|>user\n"
+        qwen_instruct_prompt_pattern_chat_s2s = "<|im_start|>system\nYou are OSUM-chat, a speech-to-speech dialogue assistant by ASLP Lab. You understand both the meaning and paralinguistic cues in speech then respond with appropriate text and emotionally matching synthetic speech.<|im_end|>\n"
+        qwen_instruct_prompt_pattern_chat_s2s_think = "<|im_start|>system\nYou are OSUM-chat, a speech-to-speech dialogue assistant by ASLP Lab. You understand both the meaning and paralinguistic cues in speech. Before responding, first output your reasoning inside <think>...</think end>, analyzing the user’s words and vocal cues. Then generate a reply with appropriate text and emotionally matched synthetic speech.<|im_end|>\n"
+        qwen_instruct_prompt_pattern_chat_s2s_streaming = "<|im_start|>system\nYou are OSUM-chat, a speech-to-speech dialogue assistant by ASLP Lab. You analyze speech (content + paralinguistic cues) and respond with interleaved text and emotionally-matched synthetic speech.<|im_end|>\n"
+        qwen_instruct_prompt_pattern_chat_s2s_streaming_think = "<|im_start|>system\nYou are OSUM-chat, a speech-to-speech dialogue assistant by ASLP Lab. You analyze speech (both content and paralinguistic cues). Before responding, output your reasoning in <think>...</think end>. Then reply with interleaved text and emotionally matched synthetic speech.<|im_end|>\n"
+        qwen_instruct_prompt_pattern_chat_s2t = "<|im_start|>system\nYou are OSUM-chat, a speech-to-text dialogue assistant by ASLP Lab. You understand both the meaning and paralinguistic cues in speech then respond exclusively with appropriate text.<|im_end|>\n"
+        qwen_instruct_prompt_pattern__chat_t2t = "<|im_start|>system\nYou are OSUM-chat, a text-to-text dialogue assistant by ASLP Lab. You understand user input in text then respond exclusively with appropriate text.<|im_end|>\n"
+        qwen_instruct_prompt_pattern_1_understand = "<|im_start|>system\nYou are OSUM-chat, an audio understanding assistant by ASLP Lab. You can transcribe speech accurately and analyze paralinguistic cues to provide precise text responses.<|im_end|>\n"
+        qwen_instruct_prompt_pattern_1_tts = "<|im_start|>system\nYou are OSUM-chat, a speech synthesis assistant by ASLP Lab. You generate natural and fluent speech from text input.<|im_end|>\n"
+        qwen_instruct_prompt_pattern_1_tts_streaming = "<|im_start|>system\nYou are OSUM-chat, a speech synthesis assistant by ASLP Lab. You generate natural speech from text input and output both audio and the original text in interleaved format.<|im_end|>\n"
+        qwen_instruct_prompt_pattern_1_old = "<|im_start|>system\nYou are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>\n"
+        qwen_instruct_prompt_pattern_1_s2t_thinking = "<|im_start|>system\nYou are OSUM-chat, a thinking-enabled speech-to-text dialogue assistant by ASLP Lab. You not only comprehend the semantic meaning and paralinguistic cues in speech but also engage in deliberate reasoning to process such information. Based on this thinking process, you then respond exclusively with appropriate text.<|im_end|>\n"
+        # user_start = "<|im_start|>user\n"
+        # 赋予不同的系统提示。
+        if output_type == "s2t_chat":
+            system_prompt = qwen_instruct_prompt_pattern_chat_s2t
+        elif output_type == "s2t_chat_fake":
+            system_prompt = qwen_instruct_prompt_pattern_chat_s2s_think
+        elif output_type == "text":
+            system_prompt = qwen_instruct_prompt_pattern_1_understand
+        elif output_type == "speech2text_token" or output_type == "speech2text_token_history":
+            system_prompt = qwen_instruct_prompt_pattern_chat_s2s
+        elif output_type == "text2token":
+            system_prompt = qwen_instruct_prompt_pattern_1_tts
+        elif output_type == "speech2text_token_streaming":
+            system_prompt = qwen_instruct_prompt_pattern_chat_s2s_streaming
+        elif output_type == "speech2text_token_think":
+            system_prompt = qwen_instruct_prompt_pattern_chat_s2s_think
+        elif output_type == "text2token_streaming":
+            system_prompt = qwen_instruct_prompt_pattern_1_tts_streaming
+        elif output_type == "text2text":
+            system_prompt = qwen_instruct_prompt_pattern__chat_t2t
+        elif output_type == "s2t_chat_think":
+            system_prompt = qwen_instruct_prompt_pattern_1_s2t_thinking
+        else:
+            system_prompt = qwen_instruct_prompt_pattern_1_old
+        # if output_type == "speech2text_token_history":
+        # if output_type == "text2text" or output_type == "text":
+        #     qwen_instruct_prompt_pattern_1 = qwen_instruct_prompt_pattern_1_old
+        # elif output_type == "speech2text_token" or output_type == "speech2text_token_streaming" or output_type == "text2text" or output_type == "s2t_chat":
+        #     qwen_instruct_prompt_pattern_1 = qwen_instruct_prompt_pattern_chat
+        # elif output_type == "text2token":
+        #     qwen_instruct_prompt_pattern_1 = qwen_instruct_prompt_pattern_1_tts
+        # else:
+        #     qwen_instruct_prompt_pattern_1 = qwen_instruct_prompt_pattern_1_old
+        system_prompt = system_prompt +  "<|im_start|>user\n"
+
+        rank = int(os.environ.get('RANK', 0))
+        utils_file.logging_limit_print(f'xxx output_type {output_type}, rank {rank}')
+        # if output_type == "s2t_chat":
+        #     output_type = "text"
+        # assert output_type in ['text', 'speech2text_token', 'text2token'], f"output_type:{output_type} not support"
+        # speech inputs
+        if output_type == 'text' or output_type == 's2t_chat' or output_type == 's2t_chat_fake' or output_type== "s2t_chat_think" or output_type == 'speech2text_token' or output_type == "speech2text_token_streaming" or output_type == "speech2text_token_think" or output_type == "speech2text_token_history":
+            wavs = batch['feats'].to(device)
+            # utils_file.logging_limit_print(f'xxx wav shape {wavs.shape}')
+            wavs_len = batch['feats_lengths'].to(device)
+            B = wavs.shape[0]
+            # utils_file.logging_limit_print(f"xxx {wavs_len}")
+            speech_embeds, speech_masks = self._get_embedding_from_wav(wavs, wavs_len)
+            # utils_file.logging_limit_print(f'xxx speech embeding shape {speech_embeds.shape}')
+            # utils_file.logging_limit_print(f'xxx speech mask shape {speech_masks.shape}')
+            # utils_file.logging_limit_print(f'xxx speech mask 0 {speech_masks[0]}')
+            speech_target = torch.full(speech_masks.shape, self.IGNORE_ID).to(
+                speech_embeds.device)
+            # utils_file.logging_limit_print(f'xxx speech target shape {speech_target.shape}')
+            # utils_file.logging_limit_print(f'xxx speech target 0 {speech_target[0]}')
+            # add bos and eos
+            speech_embeds, speech_masks, speech_target = self._add_bos_eos(0+self.speech_token_num,
+                                                                           1+self.speech_token_num,
+                                                                           speech_embeds, speech_masks, speech_target)
+        elif output_type == "text2token" or output_type == "text2token_streaming":
+            labels = batch['target'].to(device)
+            labels_lengths = batch['target_lengths'].to(device) -1  # 减1是因为要去掉eos
+            B = labels.shape[0]
+            #  text 2 token ,拿到文本序列,
+            max_len = max(labels_lengths) + 1
+            labels_pad_mask = make_pad_mask(labels_lengths, max_len=max_len)
+            labels = labels.masked_fill(labels_pad_mask, 0)
+            speech_embeds = self.embed_tokens(labels)  # B, L, D
+            speech_target = torch.full(labels_pad_mask.shape, self.IGNORE_ID).to(
+                speech_embeds.device)
+            speech_masks = ~labels_pad_mask
+
+            # add bos and eos
+            # speech_embeds, speech_masks, speech_target = self._add_bos_eos(0+self.speech_token_num,
+            #                                                                1 + self.speech_token_num,
+            #                                                                speech_embeds, speech_masks, speech_target)
+        else: # text2text
+            speech_embeds = None
+            speech_masks = None
+            speech_target = None
+        # utils_file.logging_limit_print(f'xxx after add bos eos speech embeding shape {speech_embeds.shape}')
+        # utils_file.logging_limit_print(f'xxx after add bos eos speech mask shape {speech_masks.shape}')
+        # utils_file.logging_limit_print(f'xxx after add bos eos speech target shape {speech_target.shape}')
+        # utils_file.logging_limit_print(f'xxx after add bos eos speech mask 0 {speech_masks[0]}')
+        # utils_file.logging_limit_print(f'xxx after add bos eos speech target 0 {speech_target[0]}')
+
+        # prompt
+        if 'prompt' in batch:
+            prompt = batch['prompt'].to(device)
+            prompt_lengths = batch['prompt_lengths'].to(device)
+            prompt_pad_mask = make_pad_mask(prompt_lengths)  # B, L
+            prompt = prompt.masked_fill(prompt_pad_mask, self.tokenizer.eos_token_id)
+            prompt_embeds = self.embed_tokens(prompt)  # B, L, D
+            prompt_target = torch.full(prompt.shape, self.IGNORE_ID).to(
+                device)  # B, L
+            prompt_mask = ~prompt_pad_mask
+            # utils_file.logging_limit_print(f'xxx prompt embeding shape {prompt_embeds.shape}')
+            # utils_file.logging_limit_print(f'xxx prompt mask shape {prompt_mask.shape}')
+            # utils_file.logging_limit_print(f'xxx prompt target shape {prompt_target.shape}')
+        else:
+            prompt_embeds = None
+            prompt_mask = None
+            prompt_target = None
+
+        inputs_embeds_list = []
+        attention_mask_list = []
+        target_list = []
+        prompt_pattern1 = self.tokenizer([system_prompt] * len(batch['target']), return_tensors="pt"
+                                         )['input_ids'].to(device)
+        prompt_pattern1_embeds = self.embed_tokens(prompt_pattern1)
+        prompt_pattern1_lens = torch.tensor([len(i) for i in prompt_pattern1]).to(device)
+        prompt_pattern1_mask = ~make_pad_mask(prompt_pattern1_lens)
+        prompt_pattern1_target = torch.full(prompt_pattern1.shape, self.IGNORE_ID).to(
+            device)  # B, L
+
+        # user_start_id = self.tokenizer([user_start] * len(batch['target']), return_tensors="pt"
+        #                                 )['input_ids'].to(device)
+        # user_start_embeds = self.embed_tokens(user_start_id)
+        # user_start_lens = torch.tensor([len(i) for i in user_start_id]).to(device)
+        # user_start_mask = ~make_pad_mask(user_start_lens)
+        # user_start_target = torch.full(user_start_id.shape, self.IGNORE_ID).to(
+        #     device)  # B, L
+
+        qwen_instruct_prompt_pattern_2 = "<|im_end|>\n<|im_start|>assistant\n"
+        prompt_pattern2 = self.tokenizer([qwen_instruct_prompt_pattern_2] * len(batch['target']), return_tensors="pt"
+                                         )['input_ids'].to(device)
+        prompt_pattern2_embeds = self.embed_tokens(prompt_pattern2)
+        prompt_pattern2_lens = torch.tensor([len(i) for i in prompt_pattern2]).to(device)
+        prompt_pattern2_mask = ~make_pad_mask(prompt_pattern2_lens)
+        prompt_pattern2_target = torch.full(prompt_pattern2.shape, self.IGNORE_ID).to(
+            device)  # B, L
+
+        inputs_embeds_list.append(prompt_pattern1_embeds)
+        attention_mask_list.append(prompt_pattern1_mask)
+        target_list.append(prompt_pattern1_target)
+        streaming_error = False
+        if output_type == "speech2text_token_streaming":
+            rank = int(os.environ.get('RANK', 0))
+            utils_file.logging_limit_print(f'开始处理speech2text_token streaming 任务')
+            labels = batch['target'].to(device)
+            labels_lengths = batch['target_lengths'].to(device)
+            speech_token_labels = batch['speech_tokens'].to(device)
+            speech_tokens_length = batch['speech_tokens_length'].to(device)
+
+            labels_pad_mask = make_pad_mask(labels_lengths)  # B, L
+            labels = labels.masked_fill(labels_pad_mask, 0)
+
+            speech_tokens_pad_mask = make_pad_mask(speech_tokens_length)  # B, L
+            speech_token_labels = speech_token_labels.masked_fill(speech_tokens_pad_mask, 0)
+            speech_token_labels = speech_token_labels + self.llm_vocab_size
+            if rank == 0:
+                utils_file.logging_limit_print(f'labels.shape {labels.shape}')
+                utils_file.logging_limit_print(f'labels_lengths.shape {labels_lengths.shape}')
+                utils_file.logging_limit_print(f'labels[0] {labels[0]}')
+                utils_file.logging_limit_print(f'------------------------')
+                utils_file.logging_limit_print(f'speech_token_labels.shape {speech_token_labels.shape}')
+                utils_file.logging_limit_print(f'speech_tokens_length.shape {speech_tokens_length.shape}')
+                utils_file.logging_limit_print(f'speech_token_labels[0] {speech_token_labels[0]}')
+                utils_file.logging_limit_print(f'==========================')
+            streaming_concat_ids, streaming_concat_lens = make_streaming_mode_from_s2s(labels, labels_lengths,
+                                                                                       speech_token_labels,
+                                                                                       speech_tokens_length)
+            if rank == 0:
+                utils_file.logging_limit_print(f'streaming_concat_ids.shape {streaming_concat_ids.shape}')
+                utils_file.logging_limit_print(f'streaming_concat_lens.shape {streaming_concat_lens.shape}')
+                utils_file.logging_limit_print(f'streaming_concat_lens {streaming_concat_lens[0]}')
+                utils_file.logging_limit_print(f'xxx streaming_concat_ids[0] : {streaming_concat_ids[0]}')
+                utils_file.logging_limit_print(f'------------------------')
+            streaming_concat_embeddings = do_embedding_for_two_embeds(streaming_concat_ids, self.llm_vocab_size, self.embed_tokens,
+                                                                      self.speech_token_emded)
+            streaming_concat_pad_mask = make_pad_mask(streaming_concat_lens)
+            streaming_concat_target = streaming_concat_ids.masked_fill(streaming_concat_pad_mask, self.IGNORE_ID)
+            streaming_concat_mask = ~streaming_concat_pad_mask
+            if rank == 0:
+                utils_file.logging_limit_print(f'streaming_concat_embeddings.shape {streaming_concat_embeddings.shape}')
+                utils_file.logging_limit_print(f'streaming_concat_mask shape {streaming_concat_mask.shape}')
+                utils_file.logging_limit_print(f'------------------------')
+            # if prompt_embeds is not None:  # 对于s2s 对话任务，不再使用user prompt 输入
+            #     inputs_embeds_list.append(prompt_embeds)
+            #     attention_mask_list.append(prompt_mask)
+            #     target_list.append(prompt_target)
+
+            # ===================history===================================
+            history_batch = batch.get('history', [])
+            history_embedding, history_lens = self._get_embedding_for_history(history_batch, device)
+            if history_embedding is not None:
+                utils_file.logging_info(f'OSUM-EChat： 进行历史信息的embedding')
+                history_pad_mask = make_pad_mask(history_lens)  # B, L
+                history_target = torch.full(history_pad_mask.shape, self.IGNORE_ID).to(device)  # B, L
+                history_mask = ~history_pad_mask
+                inputs_embeds_list.append(history_embedding)
+                attention_mask_list.append(history_mask)
+                target_list.append(history_target)
+                utils_file.logging_limit_print(f'xxx history embeding shape {history_embedding.shape}')
+                utils_file.logging_limit_print(f'xxx history mask shape {history_mask.shape}')
+                utils_file.logging_limit_print(f'xxx history target shape {history_target.shape}')
+            else:
+                utils_file.logging_limit_print(f'history is None')
+            # ==========================history end ===================
+            inputs_embeds_list.extend(
+                [  speech_embeds, prompt_pattern2_embeds, streaming_concat_embeddings])
+            attention_mask_list.extend([speech_masks, prompt_pattern2_mask, streaming_concat_mask])
+            target_list.extend([speech_target, prompt_pattern2_target, streaming_concat_target])
+        elif output_type == "text2token_streaming":
+            rank = int(os.environ.get('RANK', 0))
+            utils_file.logging_limit_print(f'开始tts streaming 任务')
+            labels = batch['target'].to(device)
+            labels_lengths = batch['target_lengths'].to(device)
+            speech_token_labels = batch['speech_tokens'].to(device)
+            speech_tokens_length = batch['speech_tokens_length'].to(device)
+
+            labels_pad_mask = make_pad_mask(labels_lengths)  # B, L
+            labels = labels.masked_fill(labels_pad_mask, 0)
+
+            speech_tokens_pad_mask = make_pad_mask(speech_tokens_length)  # B, L
+            speech_token_labels = speech_token_labels.masked_fill(speech_tokens_pad_mask, 0)
+            speech_token_labels = speech_token_labels + self.llm_vocab_size
+            streaming_concat_ids, streaming_concat_lens = make_streaming_mode_from_s2s(labels, labels_lengths,
+                                                                                       speech_token_labels,
+                                                                                       speech_tokens_length)
+            streaming_concat_embeddings = do_embedding_for_two_embeds(streaming_concat_ids, self.llm_vocab_size,
+                                                                      self.embed_tokens,
+                                                                      self.speech_token_emded)
+            streaming_concat_pad_mask = make_pad_mask(streaming_concat_lens)
+            streaming_concat_target = streaming_concat_ids.masked_fill(streaming_concat_pad_mask, self.IGNORE_ID)
+            streaming_concat_mask = ~streaming_concat_pad_mask
+            # if prompt_embeds is not None: # 对于tts 对话任务，不再使用user prompt 输入
+            #     inputs_embeds_list.append(prompt_embeds)
+            #     attention_mask_list.append(prompt_mask)
+            #     target_list.append(prompt_target)
+            inputs_embeds_list.extend(
+                [ speech_embeds, prompt_pattern2_embeds, streaming_concat_embeddings])
+            attention_mask_list.extend([speech_masks, prompt_pattern2_mask, streaming_concat_mask])
+            target_list.extend([speech_target, prompt_pattern2_target, streaming_concat_target])
+
+        elif output_type == 'speech2text_token' or output_type == "speech2text_token_think" or output_type == "speech2text_token_history":
+            utils_file.logging_limit_print(f'xxx 开始处理speech2text_token任务')
+            labels = batch['target'].to(device)
+            labels_lengths = batch['target_lengths'].to(device)
+            speech_token_labels = batch['speech_tokens'].to(device)
+            speech_tokens_length = batch['speech_tokens_length'].to(device)
+
+            labels_embeds, labels_target, labels_mask = self.get_label_embedding(labels, labels_lengths)
+            speech_token_labels_embeds, speech_token_labels_target, speech_token_labels_mask = self.get_speech_token_label_embedding(
+                speech_token_labels, speech_tokens_length)
+            # if prompt_embeds is not None: # 对于s2s 对话任务，不再使用user prompt 输入
+            #     inputs_embeds_list.append(prompt_embeds)
+            #     attention_mask_list.append(prompt_mask)
+            #     target_list.append(prompt_target)
+            # ===================history===================================
+            history_batch = batch.get('history', [])
+            history_embedding, history_lens = self._get_embedding_for_history(history_batch, device)
+            if history_embedding is not None:
+                utils_file.logging_info(f'OSUM-EChat： 进行历史信息的embedding')
+                history_pad_mask = make_pad_mask(history_lens)  # B, L
+                history_target = torch.full(history_pad_mask.shape, self.IGNORE_ID).to(device)  # B, L
+                history_mask = ~history_pad_mask
+                inputs_embeds_list.append(history_embedding)
+                attention_mask_list.append(history_mask)
+                target_list.append(history_target)
+                utils_file.logging_limit_print(f'xxx history embeding shape {history_embedding.shape}')
+                utils_file.logging_limit_print(f'xxx history mask shape {history_mask.shape}')
+                utils_file.logging_limit_print(f'xxx history target shape {history_target.shape}')
+            else:
+                utils_file.logging_limit_print(f'history is None')
+            # ==========================history end ===================
+            inputs_embeds_list.extend(
+                [ speech_embeds, prompt_pattern2_embeds, labels_embeds, speech_token_labels_embeds])
+            attention_mask_list.extend([speech_masks, prompt_pattern2_mask, labels_mask, speech_token_labels_mask])
+            target_list.extend([speech_target, prompt_pattern2_target, labels_target, speech_token_labels_target])
+        elif output_type == "text2token":
+            speech_token_labels = batch['speech_tokens'].to(device)
+            speech_tokens_length = batch['speech_tokens_length'].to(device)
+            speech_token_labels_embeds, speech_token_labels_target, speech_token_labels_mask = self.get_speech_token_label_embedding(
+                speech_token_labels, speech_tokens_length)
+            # if prompt_embeds is not None: # 对于tts 对话任务，不再使用user prompt 输入
+            #     inputs_embeds_list.append(prompt_embeds)
+            #     attention_mask_list.append(prompt_mask)
+            #     target_list.append(prompt_target)
+            inputs_embeds_list.extend([ speech_embeds, prompt_pattern2_embeds, speech_token_labels_embeds])
+            attention_mask_list.extend([speech_masks, prompt_pattern2_mask, speech_token_labels_mask])
+            target_list.extend([speech_target, prompt_pattern2_target, speech_token_labels_target])
+        elif output_type == "text" or output_type == 's2t_chat' or output_type == "s2t_chat_fake" or output_type == "s2t_chat_think":
+            labels = batch['target'].to(device)
+            labels_lengths = batch['target_lengths'].to(device)
+            labels_embeds, labels_target, labels_mask = self.get_label_embedding(labels, labels_lengths)
+            if prompt_embeds is not None and output_type == 'text': # 对于s2t_chat 对话任务，不再使用user prompt 输入
+                inputs_embeds_list.append(prompt_embeds)
+                attention_mask_list.append(prompt_mask)
+                target_list.append(prompt_target)
+            elif output_type != 's2t_chat' or output_type != "s2t_chat_fake" or output_type != "s2t_chat_think":
+                utils_file.logging_limit_print(
+                    f'prompt is None,task: {batch["task"]}, prompt_embeds:{prompt_embeds}, prompt_mask:{prompt_mask}')
+            inputs_embeds_list.extend([ speech_embeds, prompt_pattern2_embeds, labels_embeds])
+            attention_mask_list.extend([speech_masks, prompt_pattern2_mask, labels_mask])
+            target_list.extend([speech_target, prompt_pattern2_target, labels_target])
+        elif output_type == "text2text":
+            labels = batch['target'].to(device)
+            labels_lengths = batch['target_lengths'].to(device)
+            labels_embeds, labels_target, labels_mask = self.get_label_embedding(labels, labels_lengths)
+            if prompt_embeds is not None:
+                inputs_embeds_list.append(prompt_embeds)
+                attention_mask_list.append(prompt_mask)
+                target_list.append(prompt_target)
+            else:
+                utils_file.logging_limit_print(
+                    f'prompt is None,task: {batch["task"]}, prompt_embeds:{prompt_embeds}, prompt_mask:{prompt_mask}')
+            inputs_embeds_list.extend([ prompt_pattern2_embeds, labels_embeds])
+            attention_mask_list.extend([ prompt_pattern2_mask, labels_mask])
+            target_list.extend([ prompt_pattern2_target, labels_target])
+
+        else:
+            raise NotImplementedError(f'output_type {output_type} not support')
+
+        inputs_embeds = torch.cat(inputs_embeds_list, dim=1)
+        # utils_file.logging_limit_print(f'xxx final inputs_embeds shape {inputs_embeds.shape}')
+        attention_mask = torch.cat(attention_mask_list, dim=1)
+        # utils_file.logging_limit_print(f'xxx final attention_mask shape {attention_mask.shape}')
+        # utils_file.logging_limit_print(f'xxx final attention_mask 0 {attention_mask[0]}')
+        target = torch.cat(target_list, dim=1)
+        # utils_file.logging_limit_print(f'xxx final  target shape {target.shape}')
+        # utils_file.logging_limit_print(f'xxx final target 0 {target[0]}')
+        # utils_file.logging_limit_print(f'OSUM-EChat output_type: {output_type}')
+        position_ids = attention_mask.long().cumsum(-1) - 1
+        position_ids.masked_fill_(attention_mask == 0, 1)
+        # utils_file.logging_limit_print(f'xxx final position_ids shape {position_ids.shape}')
+        # utils_file.logging_limit_print(f'xxx final position_ids 0 {position_ids[0]}')
+        if output_type == 'text' or output_type == 's2t_chat' or output_type == "s2t_chat_fake" or output_type == "s2t_chat_think" or output_type == "text2text":
+            outputs = self.llama_model(
+                inputs_embeds=inputs_embeds,
+                labels=target,
+                attention_mask=attention_mask,
+                position_ids=position_ids.to(inputs_embeds.device)
+            )
+            loss = outputs['loss']
+            return {"loss": loss,"output_type": output_type}
+        else:
+            utils_file.logging_limit_print(f'进行llama_model的 diy forward')
+            outputs = self.llama_model(
+                inputs_embeds=inputs_embeds,
+                # labels=target,
+                attention_mask=attention_mask,
+                position_ids=position_ids.to(inputs_embeds.device)
+            )
+            hidden_states = outputs['hidden_states'][-1]
+            logits = self.lm_head(hidden_states)
+            logits2 = self.speech_head(hidden_states)  # speech_head
+            combined_logits = torch.cat([logits, logits2], dim=-1)
+            # combined_logits = self.new_lm_head(hidden_states)
+            shift_logits = combined_logits[..., :-1, :].contiguous()
+            shift_target = target[..., 1:].contiguous()
+            # utils_file.logging_limit_print(
+            #     f'xxx shift_logits shape: {shift_logits.shape}, shift_target shape: {shift_target.shape}')
+            # utils_file.logging_limit_print(f'xxx shift_target 0 {shift_target[0]}')
+            shift_logits = shift_logits.view(-1, combined_logits.shape[-1])  # 注意这里维度的调整，根据logits2的维度相应改变
+            shift_target = shift_target.view(-1)
+            shift_target = shift_target.to(shift_logits.device)
+            loss = self.loss_fct(shift_logits, shift_target)
+            loss.requires_grad_(True)
+            return {"loss": loss,"output_type": output_type}
+
 
 
     def generate(
@@ -482,8 +953,6 @@ class LLMASR_Model(nn.Module):
                                             )
 
         return llm_out
-
-
 
     def generate_text2text(
             self,
