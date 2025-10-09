@@ -99,6 +99,7 @@ OSUM模型将Whisper编码器与Qwen2 LLM相结合，支持广泛的语音任务
 
 
 ## News and Updates
+### 2025.10.09 🔥 模型训练代码现已可用！相关的代码提交可在[此处](https://github.com/ASLP-lab/OSUM/commit/60beb2631d1ce0f0ef18ce791e45cd29793bf9e7)查看。
 
 ### 2025.2.16 🎉我们更新了技术报告 [OSUM technical report v2.0](https://arxiv.org/abs/2501.13306v2)，并发布了[checkpoint](https://huggingface.co/ASLP-lab/OSUM)，以及 Hugging Face 上的在线 [test page](https://huggingface.co/spaces/ASLP-lab/OSUM)。
 在技术报告 v2.0 中，OSUM 模型经过了更多的训练步骤，训练数据量增加到了 50.5K 小时（相比 v1.0 的 44.1K 小时）：
