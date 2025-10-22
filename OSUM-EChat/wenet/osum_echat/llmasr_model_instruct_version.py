@@ -58,13 +58,6 @@ class LLMASR_Model(nn.Module):
         else:
             self.speech_transformer = None
 
-        # self.llama_model = AutoModelForCausalLM.from_pretrained(
-        #     llm_path,
-        #     # torch_dtype=torch.float32 if is_inference else torch.float16,
-        #     torch_dtype=torch.bfloat16,
-        #     trust_remote_code=True,
-        #     output_hidden_states=True,
-        # )
         self.config = AutoConfig.from_pretrained(
             llm_path,
             trust_remote_code=True,  # 若模型有自定义代码需开启
@@ -79,7 +72,7 @@ class LLMASR_Model(nn.Module):
         self.s2s_stop_criteria = None
         self.max_token_criteria_list = None
 
-        self.max_length = 4000
+        self.max_length = 8000
         self.min_length = 1
         self.num_beams = 4
         self.do_sample = True
@@ -149,6 +142,8 @@ class LLMASR_Model(nn.Module):
         self.add_embed_head = True
         self.init_custom_speech_repetition_penalty()
         self.init_custom_stop_criteria()
+
+        self.new_context = True
 
     def set_task_type(self, task_type: str):
         """设置任务类型，用于设置生成的初始类型
@@ -293,10 +288,18 @@ class LLMASR_Model(nn.Module):
                 history_embeds.append(wav_embed)
                 history_embeds.append(user_end_embedding)
                 history_embeds.append(assistant_start_embedding)
+
                 labels = item['txt']  # shape: (L,)
+                labels = self.tokenizer(labels, return_tensors="pt", add_special_tokens=False)['input_ids'].squeeze(0).to(device)
                 labels = torch.tensor(labels, device=device, dtype=torch.long)
-                embed = self.embed_tokens(labels)  # (L2, D)，一般 L2 = L
-                history_embeds.append(embed)
+                text_embed = self.embed_tokens(labels)  # (L2, D)，一般 L2 = L
+                history_embeds.append(text_embed)
+
+                if 'speech_token' in item and item['speech_token'] is not None and len(item['speech_token']) > 0:
+                    speech_tokens = torch.tensor(item['speech_token'], device=device, dtype=torch.long)
+                    speech_token_embed = self.speech_token_emded(speech_tokens)  # (L3, D)
+                    history_embeds.append(speech_token_embed)
+
                 history_embeds.append(assistant_end_embedding)
             history_embeds.append(user_start_embedding) # 最后添加一个user start
 
@@ -1159,6 +1162,137 @@ class LLMASR_Model(nn.Module):
         # print(f'output_text:{output_text}')
         # print(f'speech_res:{speech_res}')
         return (output_text, text_res, speech_res)
+
+    def generate_s2s_no_stream_multi_turn(
+            self,
+            wavs,
+            wavs_len,
+            start_new_conversation=False,
+    ):
+        """
+        基于 generate_s2s_no_stream_with_repetition_penalty 实现多轮对话
+        通过手动拼接历史context，而不是使用复杂的KV cache管理
+        """
+        self.llama_model.eval()
+        self.set_task_type("S2S")
+        self.do_add_speech_embed_head()
+
+        if start_new_conversation:
+            if hasattr(self, 'conversation_history'):
+                self.conversation_history = []
+                print("Started new conversation - history cleared")
+            else:
+                self.conversation_history = []
+
+        # =====================准备当前轮次的input embedding=====================
+        speech_embeds, speech_masks = self._get_embedding_from_wav(wavs, wavs_len)
+        speech_embeds, speech_masks, _ = self._add_bos_eos(0 + self.speech_token_num, None,
+                                                        speech_embeds, speech_masks, None)
+
+        device = speech_embeds.device
+
+        # 系统提示
+        qwen_instruct_prompt_pattern_1 = "<|im_start|>system\nYou are OSUM-chat, a speech-to-speech dialogue assistant by ASLP Lab. You understand both the meaning and paralinguistic cues in speech then respond with appropriate text and emotionally matching synthetic speech.<|im_end|>\n"
+        prompt_pattern1 = self.tokenizer([qwen_instruct_prompt_pattern_1] * len(wavs_len), return_tensors="pt"
+                                        )['input_ids'].to(speech_embeds.device)
+        prompt_pattern1_embeds = self.embed_tokens(prompt_pattern1)
+
+        qwen_instruct_prompt_pattern_2 = "<|im_end|>\n<|im_start|>assistant\n"
+        prompt_pattern2 = self.tokenizer([qwen_instruct_prompt_pattern_2] * len(wavs_len), return_tensors="pt"
+                                        )['input_ids'].to(speech_embeds.device)
+        prompt_pattern2_embeds = self.embed_tokens(prompt_pattern2)
+
+        hyps = [4098]
+        token_emb = self.speech_token_emded(torch.tensor(hyps[-1:]).to(device)).unsqueeze(0)
+        user_start_embeds = self.embed_tokens(
+            self.tokenizer(["<|im_start|>user\n"] * len(wavs_len), return_tensors="pt")['input_ids'].to(device)
+        )
+
+        # =====================构建完整的输入embedding=====================
+        embed_pieces = []
+        
+        embed_pieces.append(prompt_pattern1_embeds)
+        
+        # 2. 历史对话（如果有的话）
+        if hasattr(self, 'conversation_history') and len(self.conversation_history) > 0:
+            for history_item in self.conversation_history:
+                # 历史用户输入
+                if 'user_speech_embeds' in history_item:
+                    embed_pieces.append(history_item['user_speech_embeds'])
+                    embed_pieces.append(token_emb)
+                    embed_pieces.append(prompt_pattern2_embeds)
+                
+                # 历史助手回复
+                if 'assistant_text_embeds' in history_item:
+                    embed_pieces.append(history_item['assistant_text_embeds'])
+                
+                if 'assistant_speech_embeds' in history_item:
+                    embed_pieces.append(history_item['assistant_speech_embeds'])
+        
+        # 3. 当前轮次的输入
+        embed_pieces.extend([user_start_embeds, speech_embeds, token_emb, prompt_pattern2_embeds])
+        
+        # 拼接所有embedding
+        embeds = torch.cat(embed_pieces, dim=1)
+        atts = torch.ones(embeds.size()[:-1], dtype=torch.long).to(embeds.device)
+        if self.embed_tokens.weight.dtype == torch.float16:
+            embeds = embeds.to(torch.float16)
+
+        # 生成参数（与 generate_s2s_no_stream_with_repetition_penalty 保持一致）
+        top_k = 10
+        top_p = 0.9
+        temperature = 1.2
+        invalid_eos = 10000000
+        self.osum_chat_logit_processor1.init_match_found()
+        
+        # 生成回复
+        llm_out = self.llama_model.generate(
+            inputs_embeds=embeds,
+            max_new_tokens=self.max_length,
+            eos_token_id=invalid_eos,
+            cache_implementation="static",
+            do_sample=True,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+            logits_processor=self.s2s_repetition_penalty,
+            stopping_criteria=self.s2s_stop_criteria,
+            do_compile=True,
+            repetition_penalty=1.0,
+        )
+        # 解析输出
+        text_eos_idx = (llm_out[0] == 151645).nonzero(as_tuple=True)[0][0].item()
+        text_res = llm_out[:, :text_eos_idx - 1]
+        speech_res = llm_out[:, text_eos_idx + 1:-1]
+        # 历史 speech_token需要 4096
+        speech = llm_out[:, text_eos_idx + 1:]
+
+
+        # 获取文本和语音的embedding用于历史记录
+        assistant_text_embeds = self.embed_tokens(text_res)
+        assistant_speech_embeds = self.speech_token_emded(speech[0]).unsqueeze(0)
+
+        # 更新对话历史
+        if not hasattr(self, 'conversation_history'):
+            print("用不到这里")
+            self.conversation_history = []
+        
+        # 添加当前轮次到历史记录
+        history_item = {
+            'user_speech_embeds': speech_embeds,
+            'assistant_text_embeds': assistant_text_embeds,
+            'assistant_speech_embeds': assistant_speech_embeds,
+        }
+        self.conversation_history.append(history_item)
+        
+        # 限制历史记录长度，避免输入过长
+        max_history_turns = 5
+        if len(self.conversation_history) > max_history_turns:
+            self.conversation_history = self.conversation_history[-max_history_turns:]
+
+        output_text = self.tokenizer.batch_decode(text_res, add_special_tokens=False, skip_special_tokens=True)
+        return (output_text, text_res, speech_res)
+
 
 
     def _get_embedding_from_wav(self, wavs, wavs_len):

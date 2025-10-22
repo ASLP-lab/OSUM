@@ -260,6 +260,18 @@ def get_dataset(data_type,
 
     if conf.get('eod_id', None) is not None:
         tokenizer.eod_id = conf['eod_id']
+
+    # expand multi-turn dialogue to multi samples for multi-turn dialogue task
+    expand_conf = conf.get('expand_dialogue_prefix', {})
+    if expand_conf.get('enable', False):
+        dataset = Processor(
+            dataset,
+            processor.expand_dialogue_to_prefixes,
+            max_turn=expand_conf.get('max_turn', 0),
+            min_turn=expand_conf.get('min_turn', 1),
+            keep_final=expand_conf.get('keep_final', True),
+        )
+    
     # prompt dict
     from gxl_ai_utils.utils import utils_file
     other_tokenze_conf = conf.get('other_tokenze_conf', {})

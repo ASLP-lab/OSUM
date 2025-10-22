@@ -218,6 +218,20 @@ def tar_file_and_group_full_data(data, total_num=0):
                                     example['sample_rate'] = sample_rate
                                 else:
                                     pass
+                        elif check_wav_format(postfix)[0]:
+                            position = check_wav_format(postfix)[1]
+                            waveform, sample_rate = torchaudio.load(file_obj)
+                            if sample_rate != 16000:
+                                waveform = torchaudio.transforms.Resample(
+                                    orig_freq=sample_rate, new_freq=16000)(waveform)
+                            # feat = do_compute_log_mel_spectrogram(waveform)
+                            history_item = {'wav': waveform, "txt": "", 'position': position}
+                            insert_at_position(example['history'], history_item, position, is_wav=True)
+                        elif check_txt_format(postfix)[0]:
+                            position = check_txt_format(postfix)[1]
+                            txt_str = file_obj.read().decode('utf8').strip()
+                            history_item = {'wav': '', "txt": txt_str, 'position': position}
+                            insert_at_position(example['history'], history_item, position, is_wav=False)
                         else:
                             if postfix == 'txt':
                                 example['txt'] = file_obj.read().decode('utf8').strip()
@@ -270,23 +284,6 @@ def tar_file_and_group_full_data(data, total_num=0):
                 sample['process'].communicate()
             sample['stream'].close()
 
-# for history
-# elif check_wav_format(postfix)[0]:
-# position = check_wav_format(postfix)[1]
-# waveform, sample_rate = torchaudio.load(file_obj)
-# if sample_rate != 16000:
-# waveform = torchaudio.transforms.Resample(
-#     orig_freq=sample_rate, new_freq=16000)(waveform)
-# feat = do_compute_log_mel_spectrogram(waveform)
-# history_item = {'wav': feat, "txt": "", 'position': position}
-# insert_at_position(example['history'], history_item, position, is_wav=True)
-#
-# elif check_txt_format(postfix)[0]:
-# position = check_txt_format(postfix)[1]
-# txt_str = file_obj.read().decode(
-# 'utf8').strip()
-# history_item = {'wav': '', "txt": txt_str, 'position': position}
-# insert_at_position(example['history'], history_item, position, is_wav=False)
 
 
 def parse_raw(data):
@@ -521,6 +518,126 @@ gender_tags = {"<MALE>", "<FEMALE>"}
 none_tags = {"<NONE>", "<NULL>", "<None>", "<none>", "<null>"}
 
 
+def expand_dialogue_to_prefixes(data, max_turn=0, min_turn=1, keep_final=True):
+    """
+    将每条多轮样本展开为前缀子样本序列，实现从单轮到多轮的渐进训练。
+    注意：此函数在 tokenize 之前调用，此时 history 中的 wav 还是原始音频波形。
+    """
+    for sample in data:
+        # print(f"sample: {sample}")
+        history = sample.get('history', [])
+        total_turns = len(history) + 1  # 包含当前最后一轮
+
+        if total_turns <= 1:
+            sample['turn_idx'] = 1
+            sample['turn_total'] = 1
+            yield sample
+            continue
+
+        max_expand = total_turns if max_turn <= 0 else min(total_turns, max_turn)
+        start_turn = max(1, min_turn)
+
+        for turn_idx in range(start_turn, max_expand + 1):
+            child = copy.deepcopy(sample)
+            
+            if turn_idx <= len(history):
+                # 使用历史中的轮次作为当前轮
+                cur = history[turn_idx - 1]
+                if not isinstance(cur, dict):
+                    continue
+                
+                # 设置当前轮的原始音频和文本（来自历史）
+                if 'wav' in cur and cur['wav'] is not None:
+                    child['wav'] = cur['wav']  # 原始音频波形
+                else:
+                    continue
+                
+                if 'txt' in cur:
+                    child['txt'] = cur['txt']
+                else:
+                    continue
+                
+                # 从 extra 中提取对应轮次的 speech_token
+                extra = child.get('extra', {})
+                speech_token_key = f'speech_token_{turn_idx}'
+                if speech_token_key in extra:
+                    child['speech_token'] = extra[speech_token_key]
+                else:
+                    child['speech_token'] = []
+
+                # 设置历史（前面几轮）
+                child['history'] = []
+                for i in range(turn_idx - 1):
+                    hist_item = copy.deepcopy(history[i])
+                    # 将历史中的 wav 转换为 feat
+                    hist_item['wav'] = do_compute_log_mel_spectrogram(hist_item['wav'])
+                    speech_token_key = f'speech_token_{i + 1}'  # i+1 因为轮次从1开始
+                    if speech_token_key in extra:
+                        speech_token = extra[speech_token_key]
+                        speech_token_num = extra.get('speech_token_num', 4097)  # 使用默认值或从extra获取
+                        if isinstance(speech_token, list) and len(speech_token) > 0:
+                            hist_item['speech_token'] = [speech_token_num - 1] + speech_token + [speech_token_num - 1]
+                        else:
+                            hist_item['speech_token'] = []
+                    else:
+                        hist_item['speech_token'] = []
+                    child['history'].append(hist_item)
+
+                
+                # 清理 extra 中不需要的 speech_token 字段
+                if 'extra' in child:
+                    new_extra = {}
+                    for k, v in child['extra'].items():
+                        if not k.startswith('speech_token'):
+                            new_extra[k] = v
+                    child['extra'] = new_extra
+                    
+            else:
+                # 使用原样本的 speech_token（最后一轮的）
+                extra = child.get('extra', {})
+                if 'speech_token' in extra:
+                    child['speech_token'] = extra['speech_token']
+                else:
+                    child['speech_token'] = []
+
+                child['history'] = []
+                for i in range(len(history)):
+                    hist_item = copy.deepcopy(history[i])
+                    hist_item['wav'] = do_compute_log_mel_spectrogram(hist_item['wav'])
+                    speech_token_key = f'speech_token_{i + 1}'  # i+1 因为轮次从1开始
+                    if speech_token_key in extra:
+                        speech_token = extra[speech_token_key]
+                        # 进行与 tokenize 函数中相同的操作：添加开始和结束标记
+                        speech_token_num = extra.get('speech_token_num', 4097)  # 使用默认值或从extra获取
+                        if isinstance(speech_token, list) and len(speech_token) > 0:
+                            hist_item['speech_token'] = [speech_token_num - 1] + speech_token + [speech_token_num - 1]
+                        else:
+                            hist_item['speech_token'] = []
+                    else:
+                        hist_item['speech_token'] = []
+                    child['history'].append(hist_item)
+        
+                
+                # 清理 extra 中的 speech_token_* 字段，只保留 speech_token
+                if 'extra' in child:
+                    new_extra = {}
+                    for k, v in child['extra'].items():
+                        if k == 'speech_token' or not k.startswith('speech_token'):
+                            new_extra[k] = v
+                    child['extra'] = new_extra
+
+            # 添加轮次信息
+            child['turn_idx'] = turn_idx
+            child['turn_total'] = total_turns
+            # if turn_idx == 2:
+            #     print(f"child: {child}")
+            #     input()
+            yield child
+
+        if not keep_final:
+            continue
+
+
 def tokenize(data, tokenizer: HuggingFaceTokenizer, other_tokenze_conf={}, global_prompt_dict=None, speech_token_num=1):
     """ Decode text to chars or BPE
         Inplace operation
@@ -695,6 +812,17 @@ def tokenize(data, tokenizer: HuggingFaceTokenizer, other_tokenze_conf={}, globa
         if task_name == "<S2TCHAT> <TEXT2TOKEN>" or task_name == "<S2TCHAT> <TEXT2TOKEN> <THINK>" or task_name == "<TEXT2TOKEN>" or task_name == "<TEXT2TOKEN> <STREAMING>":
             if "speech_token" in final_extra:
                 speech_token_tmp = final_extra['speech_token']
+                if not isinstance(speech_token_tmp, list):
+                    speech_token_tmp = []
+                    print(f"error: speech_token is not a list, {speech_token_tmp}")
+                    continue
+                speech_token = [int(x) for x in speech_token_tmp]
+                if len(speech_token) == 0:
+                    utils_file.logging_warning(f"error: speech_token is empty,task: {task_name}")
+                    continue
+                sample['speech_token'] = [speech_token_num - 1] + speech_token + [speech_token_num - 1]
+            elif "speech_token" in sample:
+                speech_token_tmp = sample['speech_token']
                 if not isinstance(speech_token_tmp, list):
                     speech_token_tmp = []
                     print(f"error: speech_token is not a list, {speech_token_tmp}")
@@ -1095,6 +1223,11 @@ def compute_log_mel_spectrogram(data,
         sample_rate = sample['sample_rate']
         waveform = sample['wav'].squeeze(0)  # (channel=1, sample) -> (sample,)
         # utils_file.logging_limit_print(f'wavform shape: {waveform.shape}')
+
+        if len(waveform) < n_fft:
+            utils_file.logging_error(f"Audio too short: {len(waveform)} < {n_fft}")
+            continue
+
         try:
             if padding > 0:
                 waveform = F.pad(waveform, (0, padding))

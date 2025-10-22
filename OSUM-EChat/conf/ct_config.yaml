@@ -51,6 +51,11 @@ scheduler_conf:
 
 dataset: asr
 dataset_conf:
+  expand_dialogue_prefix:
+    enable: true
+    max_turn: 0        # 0 表示不限制，全部展开
+    min_turn: 1
+    keep_final: true
   speech_token_num: *token_num
   batch_conf:
     batch_size: 26
