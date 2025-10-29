@@ -77,6 +77,32 @@ def _write_tar_file(data_list, tar_file, resample=16000, index=0, total=1, do_re
                     wav_info.size = len(data)
                     tar.addfile(wav_info, wav_data)
 
+                    for name, value in item.items():
+                        if name.startswith("txt_"):
+                            # print(f"Text ({key}): {value}")
+                            txt_file = key + f'.{name}'
+                            value = value.encode('utf8')
+                            txt_data = io.BytesIO(value)
+                            txt_info = tarfile.TarInfo(txt_file)
+                            txt_info.size = len(value)
+                            tar.addfile(txt_info, txt_data)
+                        elif name.startswith("wav_"):
+                            # print(f"Audio Path ({key}): {value}")
+                            audio, sample_rate = torchaudio.load(value)
+                            audio = torchaudio.transforms.Resample(sample_rate, resample)(audio)
+
+                            audio = (audio * (1 << 15)).to(torch.int16)
+                            with io.BytesIO() as f:
+                                torchaudio.save(f, audio, resample, format="wav", bits_per_sample=16)
+                                suffix = "wav"
+                                f.seek(0)
+                                data = f.read()
+                            wav_file = key + '.' + f"{name}"
+                            wav_data = io.BytesIO(data)
+                            wav_info = tarfile.TarInfo(wav_file)
+                            wav_info.size = len(data)
+                            tar.addfile(wav_info, wav_data)
+
                     # Save metadata fields (task, lang, speaker, emotion, gender) each in separate files
                     for field, value in {"task": task, "lang": lang, "speaker": speaker, "emotion": emotion,
                                          "gender": gender}.items():
