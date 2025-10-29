@@ -520,13 +520,11 @@ none_tags = {"<NONE>", "<NULL>", "<None>", "<none>", "<null>"}
 
 def expand_dialogue_to_prefixes(data, max_turn=0, min_turn=1, keep_final=True):
     """
-    将每条多轮样本展开为前缀子样本序列，实现从单轮到多轮的渐进训练。
-    注意：此函数在 tokenize 之前调用，此时 history 中的 wav 还是原始音频波形。
+    Expand each multi-turn sample into a sequence of prefix sub-samples to achieve progressive training from single-turn to multi-turn.
     """
     for sample in data:
-        # print(f"sample: {sample}")
         history = sample.get('history', [])
-        total_turns = len(history) + 1  # 包含当前最后一轮
+        total_turns = len(history) + 1
 
         if total_turns <= 1:
             sample['turn_idx'] = 1
@@ -541,14 +539,12 @@ def expand_dialogue_to_prefixes(data, max_turn=0, min_turn=1, keep_final=True):
             child = copy.deepcopy(sample)
             
             if turn_idx <= len(history):
-                # 使用历史中的轮次作为当前轮
                 cur = history[turn_idx - 1]
                 if not isinstance(cur, dict):
                     continue
                 
-                # 设置当前轮的原始音频和文本（来自历史）
                 if 'wav' in cur and cur['wav'] is not None:
-                    child['wav'] = cur['wav']  # 原始音频波形
+                    child['wav'] = cur['wav']
                 else:
                     continue
                 
@@ -557,7 +553,6 @@ def expand_dialogue_to_prefixes(data, max_turn=0, min_turn=1, keep_final=True):
                 else:
                     continue
                 
-                # 从 extra 中提取对应轮次的 speech_token
                 extra = child.get('extra', {})
                 speech_token_key = f'speech_token_{turn_idx}'
                 if speech_token_key in extra:
@@ -565,16 +560,14 @@ def expand_dialogue_to_prefixes(data, max_turn=0, min_turn=1, keep_final=True):
                 else:
                     child['speech_token'] = []
 
-                # 设置历史（前面几轮）
                 child['history'] = []
                 for i in range(turn_idx - 1):
                     hist_item = copy.deepcopy(history[i])
-                    # 将历史中的 wav 转换为 feat
                     hist_item['wav'] = do_compute_log_mel_spectrogram(hist_item['wav'])
-                    speech_token_key = f'speech_token_{i + 1}'  # i+1 因为轮次从1开始
+                    speech_token_key = f'speech_token_{i + 1}'
                     if speech_token_key in extra:
                         speech_token = extra[speech_token_key]
-                        speech_token_num = extra.get('speech_token_num', 4097)  # 使用默认值或从extra获取
+                        speech_token_num = extra.get('speech_token_num', 4097)
                         if isinstance(speech_token, list) and len(speech_token) > 0:
                             hist_item['speech_token'] = [speech_token_num - 1] + speech_token + [speech_token_num - 1]
                         else:
@@ -584,7 +577,6 @@ def expand_dialogue_to_prefixes(data, max_turn=0, min_turn=1, keep_final=True):
                     child['history'].append(hist_item)
 
                 
-                # 清理 extra 中不需要的 speech_token 字段
                 if 'extra' in child:
                     new_extra = {}
                     for k, v in child['extra'].items():
@@ -593,7 +585,6 @@ def expand_dialogue_to_prefixes(data, max_turn=0, min_turn=1, keep_final=True):
                     child['extra'] = new_extra
                     
             else:
-                # 使用原样本的 speech_token（最后一轮的）
                 extra = child.get('extra', {})
                 if 'speech_token' in extra:
                     child['speech_token'] = extra['speech_token']
@@ -604,11 +595,10 @@ def expand_dialogue_to_prefixes(data, max_turn=0, min_turn=1, keep_final=True):
                 for i in range(len(history)):
                     hist_item = copy.deepcopy(history[i])
                     hist_item['wav'] = do_compute_log_mel_spectrogram(hist_item['wav'])
-                    speech_token_key = f'speech_token_{i + 1}'  # i+1 因为轮次从1开始
+                    speech_token_key = f'speech_token_{i + 1}'
                     if speech_token_key in extra:
                         speech_token = extra[speech_token_key]
-                        # 进行与 tokenize 函数中相同的操作：添加开始和结束标记
-                        speech_token_num = extra.get('speech_token_num', 4097)  # 使用默认值或从extra获取
+                        speech_token_num = extra.get('speech_token_num', 4097)
                         if isinstance(speech_token, list) and len(speech_token) > 0:
                             hist_item['speech_token'] = [speech_token_num - 1] + speech_token + [speech_token_num - 1]
                         else:
@@ -618,7 +608,6 @@ def expand_dialogue_to_prefixes(data, max_turn=0, min_turn=1, keep_final=True):
                     child['history'].append(hist_item)
         
                 
-                # 清理 extra 中的 speech_token_* 字段，只保留 speech_token
                 if 'extra' in child:
                     new_extra = {}
                     for k, v in child['extra'].items():
@@ -629,9 +618,6 @@ def expand_dialogue_to_prefixes(data, max_turn=0, min_turn=1, keep_final=True):
             # 添加轮次信息
             child['turn_idx'] = turn_idx
             child['turn_total'] = total_turns
-            # if turn_idx == 2:
-            #     print(f"child: {child}")
-            #     input()
             yield child
 
         if not keep_final:
@@ -650,14 +636,6 @@ def tokenize(data, tokenizer: HuggingFaceTokenizer, other_tokenze_conf={}, globa
             Iterable[{key, wav, txt, tokens, label, sample_rate}]
     """
     for sample in data:
-        # key值过滤
-        # key = sample.get('key', "")
-        # if key == "":
-        #     print(f"key is empty, skip this sample: {sample}")
-        #     continue
-        # if key in pass_key_set:
-        #     utils_file.logging_limit_print(f"key is in pass_key_set, skip this sample")
-        #     continue
 
         # =========== handle extra ,将其统一为字典================================
         origin_extra = sample.get('extra', {})
@@ -709,6 +687,14 @@ def tokenize(data, tokenizer: HuggingFaceTokenizer, other_tokenze_conf={}, globa
         if task_name == "<Speech2TEXTandTOKEN>" or task_name == "<S2TCHAT> <TEXT2TOKEN> <EMOTION>":
             task_name = "<S2TCHAT> <TEXT2TOKEN>"
             sample['task'] = task_name
+
+        if task_name == "<S2TCHAT> <TEXT2TOKEN>":
+            history_list = sample.get('history', [])
+            history_len = len(history_list)
+            if history_len > 0:
+                task_name = "<S2TCHAT> <TEXT2TOKEN> <HISTORY>"
+                sample['task'] = task_name
+
         # ================补丁处理结束 ==============================================
 
         unk_tag = "<&&>"  # 对应数字为 27,7672,29,...
@@ -1895,7 +1881,6 @@ def padding(data):
             else:
                 history_batch.append([])
         batch['history'] = history_batch
-        # if batch['output_type'] == "speech2text_token" or batch['output_type'] == "speech2text_token_streaming":
         if 'extra' in sample[0]:
             batch['extra'] = [sample[i].get('extra', {}) for i in order]
         yield batch

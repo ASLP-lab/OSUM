@@ -1170,8 +1170,7 @@ class LLMASR_Model(nn.Module):
             start_new_conversation=False,
     ):
         """
-        基于 generate_s2s_no_stream_with_repetition_penalty 实现多轮对话
-        通过手动拼接历史context，而不是使用复杂的KV cache管理
+        Multi-turn dialogue
         """
         self.llama_model.eval()
         self.set_task_type("S2S")
@@ -1184,14 +1183,12 @@ class LLMASR_Model(nn.Module):
             else:
                 self.conversation_history = []
 
-        # =====================准备当前轮次的input embedding=====================
         speech_embeds, speech_masks = self._get_embedding_from_wav(wavs, wavs_len)
         speech_embeds, speech_masks, _ = self._add_bos_eos(0 + self.speech_token_num, None,
                                                         speech_embeds, speech_masks, None)
 
         device = speech_embeds.device
 
-        # 系统提示
         qwen_instruct_prompt_pattern_1 = "<|im_start|>system\nYou are OSUM-chat, a speech-to-speech dialogue assistant by ASLP Lab. You understand both the meaning and paralinguistic cues in speech then respond with appropriate text and emotionally matching synthetic speech.<|im_end|>\n"
         prompt_pattern1 = self.tokenizer([qwen_instruct_prompt_pattern_1] * len(wavs_len), return_tensors="pt"
                                         )['input_ids'].to(speech_embeds.device)
@@ -1208,44 +1205,36 @@ class LLMASR_Model(nn.Module):
             self.tokenizer(["<|im_start|>user\n"] * len(wavs_len), return_tensors="pt")['input_ids'].to(device)
         )
 
-        # =====================构建完整的输入embedding=====================
         embed_pieces = []
         
         embed_pieces.append(prompt_pattern1_embeds)
-        
-        # 2. 历史对话（如果有的话）
+
         if hasattr(self, 'conversation_history') and len(self.conversation_history) > 0:
             for history_item in self.conversation_history:
-                # 历史用户输入
                 if 'user_speech_embeds' in history_item:
                     embed_pieces.append(history_item['user_speech_embeds'])
                     embed_pieces.append(token_emb)
                     embed_pieces.append(prompt_pattern2_embeds)
                 
-                # 历史助手回复
                 if 'assistant_text_embeds' in history_item:
                     embed_pieces.append(history_item['assistant_text_embeds'])
                 
                 if 'assistant_speech_embeds' in history_item:
                     embed_pieces.append(history_item['assistant_speech_embeds'])
         
-        # 3. 当前轮次的输入
         embed_pieces.extend([user_start_embeds, speech_embeds, token_emb, prompt_pattern2_embeds])
         
-        # 拼接所有embedding
         embeds = torch.cat(embed_pieces, dim=1)
         atts = torch.ones(embeds.size()[:-1], dtype=torch.long).to(embeds.device)
         if self.embed_tokens.weight.dtype == torch.float16:
             embeds = embeds.to(torch.float16)
 
-        # 生成参数（与 generate_s2s_no_stream_with_repetition_penalty 保持一致）
         top_k = 10
         top_p = 0.9
         temperature = 1.2
         invalid_eos = 10000000
         self.osum_chat_logit_processor1.init_match_found()
         
-        # 生成回复
         llm_out = self.llama_model.generate(
             inputs_embeds=embeds,
             max_new_tokens=self.max_length,
@@ -1260,32 +1249,25 @@ class LLMASR_Model(nn.Module):
             do_compile=True,
             repetition_penalty=1.0,
         )
-        # 解析输出
         text_eos_idx = (llm_out[0] == 151645).nonzero(as_tuple=True)[0][0].item()
         text_res = llm_out[:, :text_eos_idx - 1]
         speech_res = llm_out[:, text_eos_idx + 1:-1]
-        # 历史 speech_token需要 4096
         speech = llm_out[:, text_eos_idx + 1:]
 
 
-        # 获取文本和语音的embedding用于历史记录
         assistant_text_embeds = self.embed_tokens(text_res)
         assistant_speech_embeds = self.speech_token_emded(speech[0]).unsqueeze(0)
 
-        # 更新对话历史
         if not hasattr(self, 'conversation_history'):
-            print("用不到这里")
             self.conversation_history = []
         
-        # 添加当前轮次到历史记录
         history_item = {
             'user_speech_embeds': speech_embeds,
             'assistant_text_embeds': assistant_text_embeds,
             'assistant_speech_embeds': assistant_speech_embeds,
         }
         self.conversation_history.append(history_item)
-        
-        # 限制历史记录长度，避免输入过长
+
         max_history_turns = 5
         if len(self.conversation_history) > max_history_turns:
             self.conversation_history = self.conversation_history[-max_history_turns:]
