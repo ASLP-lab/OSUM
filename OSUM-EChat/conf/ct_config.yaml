@@ -52,7 +52,7 @@ scheduler_conf:
 dataset: asr
 dataset_conf:
   expand_dialogue_prefix:
-    enable: true
+    enable: false
     max_turn: 0        # 0 表示不限制，全部展开
     min_turn: 1
     keep_final: true
