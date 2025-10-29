@@ -45,6 +45,9 @@ OSUM-EChat のさらなる紹介や、推論および訓練の手順について
 </p>
 
 ## News and Updates
+
+### 2025年10月29日 🔥 リアルタイム対話デプロイコードが公開されました！関連するコードコミットは [こちら](https://github.com/ASLP-lab/Hum-Dial/tree/main/Full-Duplex_Interaction/baseline) で確認できます。
+
 ### 2025.10.09 🔥 モデル訓練コードは現在利用可能となりました！関連するコードコミットは[こちら](https://github.com/ASLP-lab/OSUM/commit/60beb2631d1ce0f0ef18ce791e45cd29793bf9e7)から確認できます。
 
 ### 2025.8.27 🔥OSUM-EChat をオープンソース化しました！OSUM-EChat のオフライン推論コード、モデルパラメータ、デモページ、体験ページを公開しました。詳細は<a href="OSUM-EChat/README.md">**こちら**</a>をご覧ください。  

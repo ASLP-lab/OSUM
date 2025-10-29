@@ -49,6 +49,10 @@
 
 ## News and Updates
 
+### 2025年10月29日 🔥 实时对话部署代码现已发布！相关代码提交可查看 [此处](https://github.com/ASLP-lab/Hum-Dial/tree/main/Full-Duplex_Interaction/baseline)。
+
+### 2025年10月09日 🔥 模型训练代码现已发布！相关代码提交可查看 [此处](https://github.com/ASLP-lab/OSUM/commit/60beb2631d1ce0f0ef18ce791e45cd29793bf9e7)。
+
 ### 2025.8.27 🔥我们开源了OSUM-EChat！OSUM-EChat 的离线推理代码、模型参数、demo页面和体验页面。详情参见<a href="OSUM-EChat/README.md">**此处**</a>。
 模型训练代码、实时对话部署代码、EChat-200K数据及评估数据将于近期开放。
 
