@@ -106,6 +106,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
       --use_amp \
       --deepspeed_config ${deepspeed_config} \
       --deepspeed.save_states ${deepspeed_save_states} \
+
 fi
 
 
