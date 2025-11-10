@@ -1,6 +1,6 @@
 data_name1:
-	path: "***/shards_list.txt"
-	weight: 3  # 权重， 对该数据清单文件的数据量翻3倍
+  path: "***/shards_list.txt"
+  weight: 3  # 权重， 对该数据清单文件的数据量翻3倍
 data_name2:
-	path: "***/shards_list.txt"
-	weight: 1  
+  path: "***/shards_list.txt"
+  weight: 1  
